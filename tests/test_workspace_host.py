@@ -20,7 +20,7 @@ class WorkspaceHostFixture:
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.startup = self.root / "startup"
         self.other = self.root / "另一工作区 with spaces"
         self.data = self.root / "service-data"
