@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="964" viewBox="0 0 1440 964" role="img" aria-labelledby="title desc">
+<title id="title">Astra Harness 总览样板：任务主线、扩展边界与持久证据</title>
+<desc id="desc">CLI 或 Web 提交自然语言任务或显式工具操作。Application 冻结模型、工作区与 Skill 身份，管理字符上下文和单 Worker。Engine 推进模型或工具阶段，统一 ToolExecutor 校验参数、权限和绑定本次调用的审批，调用已注册本地工具、MCP 或检索适配器，工具结果回到下一步。模型通过独立适配器交换请求与响应。ToolRegistry 只负责定义，装配后冻结，不管理连接。Engine 将状态和事件交回 Application，由它写入 SQLite 检查点和事件；SSE 与 CLI 经只读 API 展示。只有在途副作用结果无法判定时进入 unknown，须人工核查，不自动重放。Runner 和 Harness 是复用同一 Engine 的同步最小入口，不位于 Application Worker 的链路中。</desc>
+<defs>
+  <filter id="shadow" x="-8%" y="-8%" width="116%" height="125%"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#24304A" flood-opacity=".045"/></filter>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#7355A6"/></marker>
+  <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#357A68"/></marker>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#668BB4"/></marker>
+  <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#B08036"/></marker>
+  <style>
+    text{font-family:"Segoe UI","Microsoft YaHei","Noto Sans SC","PingFang SC",sans-serif;fill:#29364A}
+    .title{font-size:40px;font-weight:700;letter-spacing:-.8px}
+    .subtitle{font-size:23px;fill:#657187}
+    .eyebrow{font-size:14px;font-weight:650;letter-spacing:1.4px;fill:#7B8292}
+    .node-title{font-size:28px;font-weight:650;letter-spacing:-.5px}
+    .code-title{font-size:24px;font-weight:600;letter-spacing:-.2px}
+    .body{font-size:21px}
+    .small{font-size:19px}
+    .executor-title{font-size:23px;font-weight:600}
+    .adapter-title{font-size:21px;font-weight:600}
+    .adapter-detail{font-size:17px}
+    .group-label{font-size:17px;font-weight:600;letter-spacing:.4px}
+    .step{font-size:14px;font-weight:700;fill:#7355A6}
+    .route-label{font-size:17px;font-weight:550}
+    .legend{font-size:16px;fill:#657187}
+    .footnote{font-size:20px}
+    .muted{fill:#657187}.violet{fill:#7355A6}.green{fill:#357A68}.blue{fill:#668BB4}.amber{fill:#94671F}
+    .card{filter:url(#shadow)}
+    .main,.result,.define,.uncertain{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .main{stroke:#7355A6}.result{stroke:#357A68}.define{stroke:#668BB4;stroke-dasharray:5 5}.uncertain{stroke:#B08036;stroke-dasharray:6 4}
+  </style>
+</defs>
+<rect x="1" y="1" width="1438" height="962" rx="24" fill="#FBFCFE" stroke="#E1E6EF"/>
+<text x="48" y="42" class="eyebrow violet">ASTRA HARNESS / SYSTEM OVERVIEW</text>
+<text x="48" y="96" class="title">模型做决策，Harness 负责执行</text>
+<text x="48" y="133" class="subtitle">沿主线看任务，沿侧线看扩展、控制与证据。</text>
+<path d="M1094 43 H1128" class="main" marker-end="url(#arrow-purple)"/>
+<text x="1138" y="49" class="legend">任务 / 调用</text>
+<path d="M1254 43 H1288" class="define" marker-end="url(#arrow-blue)"/>
+<text x="1298" y="49" class="legend">定义 / 装配</text>
+<path d="M1094 91 H1128" class="result" marker-end="url(#arrow-green)"/>
+<text x="1138" y="97" class="legend">结果 / 事件</text>
+<path d="M1254 91 H1288" class="uncertain" marker-end="url(#arrow-amber)"/>
+<text x="1298" y="97" class="legend">不确定结果</text>
+<rect x="330" y="170" width="318" height="80" rx="12" fill="#FFFFFF" stroke="#DCE2ED"/>
+<text x="350" y="202" class="code-title">cli.build_application</text>
+<text x="350" y="237" class="body muted">装配配置、适配器与资源</text>
+<rect x="700" y="170" width="342" height="80" rx="12" fill="#EBF6F1" stroke="#BDDDCF"/>
+<text x="720" y="202" class="code-title green">Model adapter</text>
+<text x="720" y="237" class="body muted">Demo / Chat Completions</text>
+<rect x="1094" y="170" width="298" height="80" rx="12" fill="#EEF4FB" stroke="#C5D7EC"/>
+<text x="1114" y="202" class="code-title blue">ToolRegistry</text>
+<text x="1114" y="237" class="body muted">统一定义 · 装配后冻结</text>
+<rect x="310" y="290" width="752" height="302" rx="20" fill="#F2EFFA" stroke="#D8CEEC"/>
+<text x="330" y="317" class="group-label violet">运行域 · 同一状态机、预算与超时</text>
+<rect x="48" y="334" width="238" height="232" rx="14" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<rect x="68" y="349" width="27" height="25" rx="7" fill="#F0ECFA" stroke="none"/>
+<text x="81.5" y="367" class="step" text-anchor="middle">01</text>
+<text x="106" y="366" class="eyebrow">ENTRY</text>
+<text x="68" y="409" class="node-title">CLI / Web</text>
+<text x="68" y="446" class="body">自然语言目标</text>
+<text x="68" y="478" class="body">或显式单工具操作</text>
+<path d="M68 495 H266" stroke="#E5E9F0"/>
+<text x="68" y="523" class="small muted">批准 / 拒绝</text>
+<text x="68" y="555" class="small muted">暂停 / 继续 / 取消</text>
+<rect x="330" y="334" width="318" height="232" rx="14" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<rect x="350" y="349" width="27" height="25" rx="7" fill="#F0ECFA" stroke="none"/>
+<text x="363.5" y="367" class="step" text-anchor="middle">02</text>
+<text x="388" y="366" class="eyebrow">HOST</text>
+<text x="350" y="409" class="node-title">Application</text>
+<text x="350" y="446" class="body">Session / Run · 请求去重</text>
+<text x="350" y="478" class="body muted">模型 / 目录 / Skill 快照</text>
+<text x="350" y="509" class="small muted">fit_state · 字符预算</text>
+<rect x="350" y="527" width="278" height="28" rx="8" fill="#EBF6F1" stroke="none"/>
+<text x="489" y="547" class="small green" text-anchor="middle">单 Worker · 顺序调度</text>
+<rect x="700" y="334" width="342" height="232" rx="14" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<rect x="720" y="349" width="27" height="25" rx="7" fill="#F0ECFA" stroke="none"/>
+<text x="733.5" y="367" class="step" text-anchor="middle">03</text>
+<text x="758" y="366" class="eyebrow">LOOP</text>
+<text x="720" y="409" class="node-title">Engine.advance</text>
+<text x="720" y="446" class="body muted">模型 / 工具 · Registry 快照</text>
+<rect x="720" y="463" width="302" height="68" rx="9" fill="#F7F5FC" stroke="#D9D0EB"/>
+<text x="738" y="489" class="executor-title">ToolExecutor</text>
+<text x="738" y="516" class="small muted">参数 · 权限 · 绑定本次审批</text>
+<text x="720" y="551" class="small green">ToolResult → 下一次推进</text>
+<rect x="1094" y="334" width="298" height="232" rx="14" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<rect x="1114" y="349" width="27" height="25" rx="7" fill="#F0ECFA" stroke="none"/>
+<text x="1127.5" y="367" class="step" text-anchor="middle">04</text>
+<text x="1152" y="366" class="eyebrow">ADAPTERS</text>
+<text x="1114" y="403" class="node-title">能力适配器</text>
+<text x="1114" y="439" class="adapter-title">本地工具</text>
+<text x="1114" y="469" class="adapter-detail muted">文件 / 精确编辑 / 允许的命令</text>
+<text x="1114" y="499" class="adapter-title">MCP 管理器</text>
+<text x="1114" y="529" class="adapter-detail muted">STDIO / 回环 HTTP · 连接清理</text>
+<text x="1114" y="559" class="adapter-title">检索工具 + 可选 Embedding</text>
+<path d="M286 424 H328" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M648 424 H698" class="main" marker-end="url(#arrow-purple)"/>
+<text x="673" y="407" class="route-label violet" text-anchor="middle">推进</text>
+<path d="M1022 489 H1092" class="main" marker-end="url(#arrow-purple)"/>
+<text x="1058" y="475" class="route-label violet" text-anchor="middle">调用</text>
+<path d="M1094 542 H1044" class="result" marker-end="url(#arrow-green)"/>
+<text x="1068" y="562" class="route-label green" text-anchor="middle">结果</text>
+<path d="M489 250 V332" class="define" marker-end="url(#arrow-blue)"/>
+<text x="507" y="278" class="route-label blue">运行绑定</text>
+<path d="M814 334 V252" class="main" marker-end="url(#arrow-purple)"/>
+<text x="795" y="282" class="route-label violet" text-anchor="end">请求</text>
+<path d="M920 250 V332" class="result" marker-end="url(#arrow-green)"/>
+<text x="939" y="282" class="route-label green">响应</text>
+<path d="M1243 334 V252" class="define" marker-end="url(#arrow-blue)"/>
+<text x="1261" y="282" class="route-label blue">注册 Tool</text>
+<path d="M1094 210 H1070 V451 H1044" class="define" marker-end="url(#arrow-blue)"/>
+<path d="M840 566 V624 H576 V568" class="result" marker-end="url(#arrow-green)"/>
+<text x="662" y="650" class="route-label green">状态 / 事件</text>
+<path d="M420 566 V686" class="main" marker-end="url(#arrow-purple)"/>
+<text x="439" y="660" class="route-label violet">保存</text>
+<path d="M550 688 V568" class="define" marker-end="url(#arrow-blue)"/>
+<text x="531" y="660" class="route-label blue" text-anchor="end">恢复</text>
+<rect x="48" y="688" width="238" height="126" rx="14" fill="#FFFFFF" stroke="#DCE2ED"/>
+<text x="68" y="723" class="node-title">结果与轨迹</text>
+<text x="68" y="755" class="small muted">SSE / CLI · 经读取 API</text>
+<text x="68" y="786" class="small green">只读展示，不重新执行</text>
+<rect x="330" y="688" width="712" height="126" rx="14" fill="#EEF6F3" stroke="#C6DDD4"/>
+<text x="350" y="724" class="node-title green">SQLite Store</text>
+<text x="350" y="757" class="body">检查点 / inflight / 审批与预算 / 事件 seq</text>
+<text x="350" y="789" class="small muted">重开时先核对身份，再按检查点证据决定能否继续。</text>
+<path d="M330 754 H288" class="result" marker-end="url(#arrow-green)"/>
+<rect x="1094" y="688" width="298" height="126" rx="14" fill="#FFF5E5" stroke="#E8D0A7"/>
+<text x="1114" y="724" class="node-title amber">unknown</text>
+<text x="1114" y="757" class="body">核查后解除阻断</text>
+<text x="1114" y="789" class="small amber">不重放 · 不改为成功</text>
+<path d="M996 566 V645 H1243 V686" class="uncertain" marker-end="url(#arrow-amber)"/>
+<text x="1111" y="635" class="route-label amber">在途副作用结果不明</text>
+<path d="M48 840 H1392" stroke="#DCE2ED"/>
+<text x="48" y="873" class="footnote muted">Runner / Harness 是同步最小入口：直接复用 Engine，不带 Store 持久恢复。</text>
+<text x="48" y="903" class="footnote muted">作用域：新任务固定模型与目录；MCP、知识检索与 Embedding 仍绑定启动工作区。</text>
+<text x="48" y="933" class="footnote muted">Skill 只提供按次文本指导；Embedding 需显式配置。上述分组是代码职责，不是 OS 沙箱。</text>
+</svg>

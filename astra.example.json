@@ -1,0 +1,10 @@
+{
+  "limits": {
+    "max_model_calls": 12,
+    "max_tool_calls": 24,
+    "model_timeout": 60,
+    "tool_timeout": 10,
+    "run_timeout": 180
+  },
+  "context_chars": 48000
+}

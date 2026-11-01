@@ -1,0 +1,9 @@
+{
+  "enabled": false,
+  "endpoint": "",
+  "model": "",
+  "key_env": "ASTRA_EMBEDDING_API_KEY",
+  "dimensions": null,
+  "revision": "1",
+  "timeout": 10
+}

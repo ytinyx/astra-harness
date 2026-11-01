@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1010" viewBox="0 0 1440 1010" role="img" aria-labelledby="title desc">
+<title id="title">配置可以变，正在运行的任务不漂移</title>
+<desc id="desc">上方任务配置在新 Run 创建时固定模型配置与凭据绑定、工作区目录身份、所选 Skill 正文和工具契约。运行、暂停后继续及重开均使用或核对这些绑定。下方 MCP 配置保存后默认禁用，显式连接只发现工具；测试完成关闭连接，启用则在宿主空闲边界发布工具集，再由统一执行器调用。已启用服务要先停用再编辑；旧任务不会被在线替换工具。Skill 是文本指导，不授予权限；凭据仅通过后端环境引用。</desc>
+<defs>
+  <filter id="shadow" x="-8%" y="-8%" width="116%" height="125%"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#24304A" flood-opacity=".045"/></filter>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#7355A6"/></marker>
+  <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#357A68"/></marker>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#668BB4"/></marker>
+  <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#B08036"/></marker>
+  <style>
+    text{font-family:"Segoe UI","Microsoft YaHei","Noto Sans SC","PingFang SC",sans-serif;fill:#29364A}
+    .title{font-size:40px;font-weight:700;letter-spacing:-.8px}
+    .subtitle{font-size:23px;fill:#657187}
+    .eyebrow{font-size:14px;font-weight:650;letter-spacing:1.4px;fill:#7B8292}
+    .node-title{font-size:28px;font-weight:650;letter-spacing:-.5px}
+    .code-title{font-size:24px;font-weight:600;letter-spacing:-.2px}
+    .body{font-size:21px}
+    .small{font-size:19px}
+    .executor-title{font-size:23px;font-weight:600}
+    .adapter-title{font-size:21px;font-weight:600}
+    .adapter-detail{font-size:17px}
+    .group-label{font-size:17px;font-weight:600;letter-spacing:.4px}
+    .step{font-size:14px;font-weight:700;fill:#7355A6}
+    .route-label{font-size:17px;font-weight:550}
+    .legend{font-size:16px;fill:#657187}
+    .footnote{font-size:20px}
+    .muted{fill:#657187}.violet{fill:#7355A6}.green{fill:#357A68}.blue{fill:#668BB4}.amber{fill:#94671F}
+    .card{filter:url(#shadow)}
+    .main,.result,.define,.uncertain{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .main{stroke:#7355A6}.result{stroke:#357A68}.define{stroke:#668BB4;stroke-dasharray:5 5}.uncertain{stroke:#B08036;stroke-dasharray:6 4}
+  </style>
+</defs>
+<rect x="1" y="1" width="1438" height="1008" rx="24" fill="#FBFCFE" stroke="#E1E6EF"/>
+<text x="48" y="42" class="eyebrow violet">ASTRA HARNESS / CONFIGURATION &amp; RUN SNAPSHOTS</text>
+<text x="48" y="96" class="title">配置可以变，正在运行的任务不漂移</text>
+<text x="48" y="133" class="subtitle">任务内容按创建时的选择执行；服务连接与工具发布有独立的生命周期。</text>
+<text x="48" y="190" class="group-label violet">01 / 任务配置：在创建 Run 时固定</text>
+<rect x="48" y="220" width="280" height="208" rx="12" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<text x="68" y="255" class="code-title ">可编辑的选择</text>
+<text x="68" y="290" class="body muted">模型 profile</text>
+<text x="68" y="327" class="body muted">工作区目录</text>
+<text x="68" y="364" class="body muted">所选 Skill</text>
+<rect x="386" y="256" width="240" height="136" rx="12" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<text x="406" y="291" class="code-title ">提交新任务</text>
+<text x="406" y="326" class="small muted">校验选择与作用域</text>
+<text x="406" y="357" class="small muted">同 Session 模型一致</text>
+<rect x="684" y="220" width="354" height="208" rx="12" fill="#F2EFFA" stroke="#D8CEEC" class="card"/>
+<text x="704" y="255" class="code-title violet">冻结运行绑定</text>
+<text x="704" y="290" class="small muted">模型配置 + 凭据绑定</text>
+<text x="704" y="321" class="small muted">目录路径 + 目录身份</text>
+<text x="704" y="352" class="small muted">Skill 正文 + 内容摘要</text>
+<text x="704" y="383" class="small muted">工具契约 + 运行预算</text>
+<rect x="1096" y="256" width="296" height="136" rx="12" fill="#EBF6F1" stroke="#BDDDCF" class="card"/>
+<text x="1116" y="291" class="code-title green">使用冻结绑定</text>
+<text x="1116" y="326" class="body muted">运行 / 暂停后继续</text>
+<text x="1116" y="357" class="body muted">恢复前再次核对身份</text>
+<path d="M328 324 H384" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M626 324 H682" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M1038 324 H1094" class="main" marker-end="url(#arrow-purple)"/>
+<text x="655" y="307" class="route-label violet" text-anchor="middle">创建</text>
+<path d="M48 461 H1392" fill="none" stroke="#DCE2ED"/>
+<text x="48" y="494" class="body muted">后续编辑只影响新任务的选择；既有任务保持原绑定，身份不符时拒绝继续。</text>
+<text x="48" y="553" class="group-label blue">02 / MCP：连接管理与工具执行分开</text>
+<rect x="48" y="584" width="280" height="136" rx="12" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<text x="68" y="619" class="code-title ">保存配置</text>
+<text x="68" y="654" class="body muted">默认禁用</text>
+<text x="68" y="685" class="body muted">不启动进程、不连接</text>
+<rect x="386" y="584" width="240" height="136" rx="12" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<text x="406" y="619" class="code-title ">显式连接 / 发现</text>
+<text x="406" y="654" class="small muted">只列出工具</text>
+<text x="406" y="685" class="small muted">不执行工具</text>
+<rect x="684" y="584" width="354" height="136" rx="12" fill="#EEF4FB" stroke="#C5D7EC" class="card"/>
+<text x="704" y="619" class="code-title blue">空闲时发布工具集</text>
+<text x="704" y="654" class="body muted">新 Registry · 装配后冻结</text>
+<text x="704" y="685" class="body muted">修订身份进入工具快照</text>
+<rect x="1096" y="584" width="296" height="136" rx="12" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<text x="1116" y="619" class="code-title ">统一 ToolExecutor</text>
+<text x="1116" y="654" class="body muted">参数 / 权限 / 单次审批</text>
+<text x="1116" y="685" class="body muted">身份变更不沿用旧批准</text>
+<path d="M328 652 H384" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M626 652 H682" class="define" marker-end="url(#arrow-blue)"/>
+<text x="655" y="635" class="route-label blue" text-anchor="middle">启用</text>
+<path d="M1038 652 H1094" class="define" marker-end="url(#arrow-blue)"/>
+<path d="M506 720 V758" class="result" marker-end="url(#arrow-green)"/>
+<text x="525" y="744" class="route-label green">仅测试</text>
+<rect x="386" y="760" width="240" height="52" rx="10" fill="#EBF6F1" stroke="#BDDDCF"/>
+<text x="506" y="793" class="small green" text-anchor="middle">返回发现结果并关闭</text>
+<text x="684" y="771" class="small muted">编辑 / 删除已启用服务前，先停用。</text>
+<text x="684" y="803" class="small muted">执行中、启动工作区非终态或 unknown 阻断时，不发布新工具。</text>
+<path d="M48 847 H1392" fill="none" stroke="#DCE2ED"/>
+<text x="48" y="886" class="footnote muted">保存模型 / MCP 配置不发送请求；Skill 启用后仍需在任务中选择。</text>
+<text x="48" y="921" class="footnote muted">Skill 不授予权限；密钥用后端环境引用，工作区切换不改已有任务，也不移动文件。</text>
+<text x="48" y="956" class="footnote muted">MCP、知识库与 Embedding 仍限定在启动工作区；HTTP MCP 当前只接受回环地址。</text>
+</svg>

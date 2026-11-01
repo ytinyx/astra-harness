@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "astra-harness"
+version = "0.4.0"
+license = {file = "LICENSE"}
+description = "A local Agent workbench with bounded execution, approvals and reproducible evaluation."
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi==0.162.0",
+    "pydantic==2.14.2",
+    "uvicorn==0.54.0",
+    "starlette==1.7.0",
+    "httpx==0.28.1",
+]
+
+[project.scripts]
+astra-harness = "astra_harness.cli:main"
+
+[tool.setuptools.package-data]
+astra_harness = ["static/*.html", "static/*.css", "static/*.mjs", "builtin/samples/*.md", "datasets/*.jsonl"]
+
+[tool.setuptools.packages.find]
+include = ["astra_harness*"]

@@ -1,0 +1,22 @@
+# Only public source/demo material belongs in a source distribution.
+include README.md HANDOFF.md CHANGELOG.md CONTRIBUTING.md SECURITY.md AGENTS.md LICENSE
+include .env.example .gitignore astra.example.json embedding.example.json pyproject.toml MANIFEST.in
+include uv.lock requirements.lock
+include .github/workflows/ci.yml
+include astra_harness/*.py astra_harness/builtin/*.py
+include astra_harness/static/*.html astra_harness/static/*.css astra_harness/static/*.mjs
+include astra_harness/builtin/samples/*.md astra_harness/datasets/*.jsonl
+include docs/*.md docs/assets/*.svg docs/images/*.jpg
+include examples/*.py examples/workspace/*.md
+include examples/skills/report-check/SKILL.md
+include scripts/check_docs.py scripts/recovery_lab.py
+include scripts/task_recovery_lab.py scripts/task_recovery_fixtures.py scripts/file_range_lab.py scripts/tool_identity_lab.py
+include scripts/package_release.py scripts/package_smoke.py
+include tests/test_*.py tests/fixtures/*.py tests/frontend/*.mjs
+prune .local
+prune .git
+prune build
+prune dist
+global-exclude .env .env.* *.pyc *.pyo *.sqlite *.sqlite3 *.db *.log
+# The credential template is public; actual environment files never are.
+include .env.example

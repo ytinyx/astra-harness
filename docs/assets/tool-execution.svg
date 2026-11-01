@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1010" viewBox="0 0 1440 1010" role="img" aria-labelledby="title desc">
+<title id="title">统一工具执行：从注册、审批到可核对的结果</title>
+<desc id="desc">本地 Python 函数和 MCP 发现结果都适配为 Tool，进入同一 ToolRegistry。装配后冻结定义与恢复身份，连接资源仍由适配器管理。模型提出的调用和 Application.submit_tool 显式单工具操作进入同一执行路径。宿主先核对运行绑定，ToolExecutor 校验工具名称、参数 Schema 和运行权限，Engine 为需要审批的调用暂停并绑定 call_id、名称与参数；批准前重新检查运行身份。调用计数和等待时间受限后，执行器复查并调用 handler，校验有界 JSON 结果。参数或权限拒绝不执行 handler，返回结构化错误。已取得可判定结果时，Agent 将 ToolResult 加入上下文继续模型阶段；显式单工具任务直接结束。已开始的副作用调用若超时、取消或出现无法判定结果的错误，则保留 unknown，不自动重试。Application 保存状态与事件，查看事件不会重新执行工具。</desc>
+<defs>
+  <filter id="shadow" x="-8%" y="-8%" width="116%" height="125%"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#24304A" flood-opacity=".045"/></filter>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#7355A6"/></marker>
+  <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#357A68"/></marker>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#668BB4"/></marker>
+  <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#B08036"/></marker>
+  <style>
+    text{font-family:"Segoe UI","Microsoft YaHei","Noto Sans SC","PingFang SC",sans-serif;fill:#29364A}
+    .title{font-size:40px;font-weight:700;letter-spacing:-.8px}
+    .subtitle{font-size:23px;fill:#657187}
+    .eyebrow{font-size:14px;font-weight:650;letter-spacing:1.4px;fill:#7B8292}
+    .node-title{font-size:26px;font-weight:650;letter-spacing:-.5px}
+    .code-title{font-size:24px;font-weight:600;letter-spacing:-.2px}
+    .body{font-size:21px}.small{font-size:19px}.detail{font-size:17px}
+    .group-label{font-size:17px;font-weight:600;letter-spacing:.4px}
+    .step{font-size:14px;font-weight:700;fill:#7355A6}
+    .route-label{font-size:17px;font-weight:550}
+    .footnote{font-size:19px}.muted{fill:#657187}.violet{fill:#7355A6}.green{fill:#357A68}.blue{fill:#668BB4}.amber{fill:#94671F}
+    .card{filter:url(#shadow)}
+    .main,.result,.define,.uncertain{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .main{stroke:#7355A6}.result{stroke:#357A68}.define{stroke:#668BB4;stroke-dasharray:5 5}.uncertain{stroke:#B08036;stroke-dasharray:6 4}
+  </style>
+</defs>
+<rect x="1" y="1" width="1438" height="1008" rx="24" fill="#FBFCFE" stroke="#E1E6EF"/>
+<text x="48" y="42" class="eyebrow violet" data-max-width="1050">ASTRA HARNESS / TOOL EXECUTION</text>
+<text x="48" y="96" class="title" data-max-width="1344">一种工具定义，一条受控执行路径</text>
+<text x="48" y="133" class="subtitle" data-max-width="1344">无论来自本地函数还是 MCP，执行前都要经过相同的参数、权限与审批检查。</text>
+
+<!-- Definition and assembly: neither registration nor discovery executes the tool. -->
+<rect x="48" y="168" width="548" height="136" rx="14" fill="#EEF4FB" stroke="#C5D7EC"/>
+<text x="68" y="196" class="group-label blue" data-max-width="508">接入阶段 · 适配为统一 Tool</text>
+<rect x="68" y="211" width="228" height="74" rx="9" fill="#FFFFFF" stroke="#DCE2ED"/>
+<text x="84" y="240" class="code-title" data-max-width="196">本地 Python</text>
+<text x="84" y="267" class="detail muted" data-max-width="196">函数 · 文件编辑 · 命令</text>
+<rect x="320" y="211" width="256" height="74" rx="9" fill="#FFFFFF" stroke="#DCE2ED"/>
+<text x="336" y="240" class="code-title" data-max-width="224">MCP adapter</text>
+<text x="336" y="267" class="detail muted" data-max-width="224">发现工具 → 命名空间与策略</text>
+<path d="M596 243 H648" class="define" marker-end="url(#arrow-blue)"/>
+<text x="622" y="226" class="route-label blue" text-anchor="middle" data-max-width="52">注册</text>
+<rect x="650" y="168" width="352" height="136" rx="14" fill="#EEF4FB" stroke="#C5D7EC"/>
+<text x="670" y="205" class="node-title blue" data-max-width="312">ToolRegistry</text>
+<text x="670" y="238" class="small" data-max-width="312">名称 / Schema / 宿主策略</text>
+<text x="670" y="267" class="small" data-max-width="312">恢复身份 · 装配后冻结</text>
+<text x="670" y="296" class="detail muted" data-max-width="312">Engine 保存本次运行的工具快照</text>
+<rect x="1046" y="168" width="346" height="136" rx="14" fill="#FFFFFF" stroke="#DCE2ED"/>
+<text x="1066" y="205" class="code-title" data-max-width="306">连接归适配器管理</text>
+<text x="1066" y="238" class="small muted" data-max-width="306">MCP manager 负责启动与关闭</text>
+<text x="1066" y="267" class="small muted" data-max-width="306">Registry 不管理服务进程</text>
+<text x="1066" y="296" class="detail blue" data-max-width="306">工具发现 ≠ 工具执行</text>
+
+<!-- The host owns run binding; it is not hidden inside parameter validation. -->
+<rect x="48" y="334" width="1344" height="44" rx="9" fill="#F2EFFA" stroke="#D8CEEC"/>
+<text x="68" y="362" class="small violet" data-max-width="1304">Application 先核对运行绑定：工作区、工具，以及适用的模型与 Skill 快照。</text>
+<path d="M826 304 V320 H488 V332" class="define" marker-end="url(#arrow-blue)"/>
+
+<!-- Execution: the purple route is left to right. -->
+<rect x="48" y="412" width="246" height="198" rx="14" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<rect x="68" y="427" width="27" height="25" rx="7" fill="#F0ECFA"/>
+<text x="81.5" y="445" class="step" text-anchor="middle">01</text>
+<text x="108" y="445" class="eyebrow" data-max-width="166">CALL</text>
+<text x="68" y="485" class="node-title" data-max-width="206">ToolCall</text>
+<text x="68" y="516" class="small" data-max-width="206">name · arguments</text>
+<text x="68" y="544" class="small" data-max-width="206">call_id · 本次运行</text>
+<path d="M68 559 H274" stroke="#E5E9F0"/>
+<text x="68" y="575" class="detail muted" data-max-width="206">模型提议 / 单工具操作</text>
+<text x="68" y="603" class="detail violet" data-max-width="206">两种入口，共用执行器</text>
+
+<rect x="338" y="412" width="300" height="198" rx="14" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<rect x="358" y="427" width="27" height="25" rx="7" fill="#F0ECFA"/>
+<text x="371.5" y="445" class="step" text-anchor="middle">02</text>
+<text x="398" y="445" class="eyebrow" data-max-width="220">CHECK</text>
+<text x="358" y="485" class="node-title" data-max-width="260">参数与权限</text>
+<text x="358" y="516" class="small" data-max-width="260">按名称查已注册工具</text>
+<text x="358" y="544" class="small" data-max-width="260">参数 Schema / 输入体积</text>
+<text x="358" y="572" class="small" data-max-width="260">所需权限 ⊆ 运行权限</text>
+<text x="358" y="599" class="detail muted" data-max-width="260">ToolExecutor.check</text>
+
+<rect x="682" y="412" width="320" height="198" rx="14" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<rect x="702" y="427" width="27" height="25" rx="7" fill="#F0ECFA"/>
+<text x="715.5" y="445" class="step" text-anchor="middle">03</text>
+<text x="742" y="445" class="eyebrow" data-max-width="240">APPROVAL</text>
+<text x="702" y="485" class="node-title" data-max-width="280">审批绑定本次调用</text>
+<text x="702" y="516" class="small" data-max-width="280">call_id + name + arguments</text>
+<text x="702" y="544" class="small" data-max-width="280">需要审批 → waiting_approval</text>
+<text x="702" y="572" class="small" data-max-width="280">批准时再次核对运行身份</text>
+<text x="702" y="599" class="detail violet" data-max-width="280">待批不执行 · 拒绝即结束</text>
+
+<rect x="1046" y="412" width="346" height="198" rx="14" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<rect x="1066" y="427" width="27" height="25" rx="7" fill="#F0ECFA"/>
+<text x="1079.5" y="445" class="step" text-anchor="middle">04</text>
+<text x="1106" y="445" class="eyebrow" data-max-width="266">INVOKE</text>
+<text x="1066" y="485" class="node-title" data-max-width="306">执行有界调用</text>
+<text x="1066" y="516" class="small" data-max-width="306">Engine：次数 / 剩余时间检查</text>
+<text x="1066" y="544" class="small" data-max-width="306">执行器 aexecute → handler</text>
+<text x="1066" y="572" class="small" data-max-width="306">复查参数、权限与批准状态</text>
+<text x="1066" y="599" class="detail muted" data-max-width="306">等待限时 · 有界 JSON 返回值</text>
+
+<path d="M294 497 H336" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M638 497 H680" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M1002 497 H1044" class="main" marker-end="url(#arrow-purple)"/>
+<text x="1024" y="483" class="route-label violet" text-anchor="middle" data-max-width="42">放行</text>
+
+<!-- Return routes are separate from the invocation route; no retry arrow. -->
+<path d="M488 610 V678 H724 V728" class="result" marker-end="url(#arrow-green)"/>
+<text x="504" y="667" class="route-label green" data-max-width="244">参数 / 权限拒绝：不执行</text>
+<path d="M1142 610 V646 H960 V728" class="result" marker-end="url(#arrow-green)"/>
+<text x="987" y="634" class="route-label green" data-max-width="220">可判定的工具结果</text>
+<path d="M1294 610 V728" class="uncertain" marker-end="url(#arrow-amber)"/>
+<text x="1310" y="652" class="route-label amber" data-max-width="80">副作用</text>
+<text x="1310" y="676" class="route-label amber" data-max-width="80">结果不明</text>
+
+<text x="48" y="757" class="group-label muted" data-max-width="246">一次调用，两类去向</text>
+<text x="48" y="791" class="small muted" data-max-width="246">有结果：交还执行循环</text>
+<text x="48" y="821" class="small muted" data-max-width="246">不确定：停下并保留证据</text>
+
+<rect x="338" y="730" width="300" height="148" rx="14" fill="#EBF6F1" stroke="#BDDDCF"/>
+<text x="358" y="767" class="node-title green" data-max-width="260">继续或结束</text>
+<text x="358" y="800" class="small" data-max-width="260">Agent → 下一模型阶段</text>
+<text x="358" y="828" class="small" data-max-width="260">Direct → 结束（无模型）</text>
+<text x="358" y="858" class="detail muted" data-max-width="260">终态 completed / failed</text>
+
+<rect x="682" y="730" width="320" height="148" rx="14" fill="#EBF6F1" stroke="#BDDDCF"/>
+<text x="702" y="767" class="node-title green" data-max-width="280">ToolResult</text>
+<text x="702" y="800" class="small" data-max-width="280">value 或 error_code</text>
+<text x="702" y="828" class="small" data-max-width="280">写入消息 · tool.end 事件</text>
+<text x="702" y="858" class="detail muted" data-max-width="280">由 Application 保存状态与事件</text>
+<path d="M682 799 H640" class="result" marker-end="url(#arrow-green)"/>
+
+<rect x="1046" y="730" width="346" height="148" rx="14" fill="#FFF5E5" stroke="#E8D0A7"/>
+<text x="1066" y="767" class="node-title amber" data-max-width="306">unknown</text>
+<text x="1066" y="800" class="small" data-max-width="306">副作用已开始，结果无法判定</text>
+<text x="1066" y="828" class="small" data-max-width="306">超时 / 取消 / 异常均需核查</text>
+<text x="1066" y="858" class="detail amber" data-max-width="306">保留证据 · 人工核查 · 不自动重放</text>
+
+<path d="M48 909 H1392" stroke="#DCE2ED"/>
+<text x="48" y="942" class="footnote muted" data-max-width="1344">权限与审批来自宿主策略；MCP 工具当前按有副作用、需审批处理。它们不能自授权限。</text>
+<text x="48" y="974" class="footnote muted" data-max-width="1344">限时不等于 OS 沙箱：同步函数可能仍在运行；结果已确定时不改成 unknown，重开与人工核查不重新执行。</text>
+</svg>

@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1054" viewBox="0 0 1440 1054" role="img" aria-labelledby="title desc">
+<title id="title">AgentLoop：一次决策，多次受控执行</title>
+<desc id="desc">Application先核对运行绑定并在模型阶段调用fit_state。Engine检查取消、快照和预算，发出ModelRequest并校验ModelResponse。没有工具调用则完成；有调用时先校验整批工具预算，顺序执行当前ToolCall，经统一ToolExecutor后将确定ToolResult回填并推进游标。同批还有调用则执行下一项，批次完成才回模型阶段。审批等待、失败取消、未知副作用均不会自动沿主循环继续。</desc>
+<defs>
+  <filter id="shadow" x="-8%" y="-8%" width="116%" height="125%"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#24304A" flood-opacity=".045"/></filter>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#7355A6"/></marker>
+  <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#357A68"/></marker>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#668BB4"/></marker>
+  <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#B08036"/></marker>
+  <style>
+    text{font-family:"Segoe UI","Microsoft YaHei","Noto Sans SC","PingFang SC",sans-serif;fill:#29364A}
+    .title{font-size:40px;font-weight:700;letter-spacing:-.8px}
+    .subtitle{font-size:23px;fill:#657187}
+    .eyebrow{font-size:14px;font-weight:650;letter-spacing:1.4px;fill:#7B8292}
+    .node-title{font-size:28px;font-weight:650;letter-spacing:-.5px}
+    .code-title{font-size:24px;font-weight:600;letter-spacing:-.2px}
+    .body{font-size:21px}
+    .small{font-size:19px}
+    .executor-title{font-size:23px;font-weight:600}
+    .adapter-title{font-size:21px;font-weight:600}
+    .adapter-detail{font-size:17px}
+    .group-label{font-size:17px;font-weight:600;letter-spacing:.4px}
+    .step{font-size:14px;font-weight:700;fill:#7355A6}
+    .route-label{font-size:17px;font-weight:550}
+    .legend{font-size:16px;fill:#657187}
+    .footnote{font-size:20px}
+    .muted{fill:#657187}.violet{fill:#7355A6}.green{fill:#357A68}.blue{fill:#668BB4}.amber{fill:#94671F}
+    .card{filter:url(#shadow)}
+    .main,.result,.define,.uncertain{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .main{stroke:#7355A6}.result{stroke:#357A68}.define{stroke:#668BB4;stroke-dasharray:5 5}.uncertain{stroke:#B08036;stroke-dasharray:6 4}
+  </style>
+</defs>
+<rect x="1" y="1" width="1438" height="1052" rx="24" fill="#FBFCFE" stroke="#E1E6EF"/>
+<text x="48" y="42" class="eyebrow violet">ASTRA HARNESS / AGENT LOOP</text>
+<text x="48" y="96" class="title">AgentLoop：一次决策，多次受控执行</text>
+<text x="48" y="133" class="subtitle">先完成当前工具批次，再让模型根据结果决定下一步。</text>
+<rect x="48" y="170" width="1344" height="48" rx="9" fill="#F2EFFA" stroke="#D8CEEC"/>
+<text x="68" y="201" class="body violet">Application 单 Worker：保存运行状态；每次 Engine.advance 只推进一个模型或工具阶段。</text>
+<rect x="48" y="272" width="248" height="112" rx="12" fill="#F5F1FC" stroke="#D9CEED"/>
+<text x="68" y="310" class="node-title violet">推进前检查</text>
+<text x="68" y="344" class="body muted">上下文 / 身份 / 预算</text>
+<rect x="354" y="272" width="280" height="112" rx="12" fill="#FFFFFF" stroke="#DCE2ED"/>
+<text x="374" y="310" class="node-title">ModelRequest</text>
+<text x="374" y="344" class="body muted">消息 + 工具定义</text>
+<rect x="692" y="272" width="280" height="112" rx="12" fill="#FFFFFF" stroke="#DCE2ED"/>
+<text x="712" y="310" class="node-title">ModelResponse</text>
+<text x="712" y="344" class="body muted">协议 / 整批工具预算</text>
+<rect x="1110" y="272" width="282" height="112" rx="12" fill="#EEF6F3" stroke="#C6DDD4"/>
+<text x="1130" y="310" class="node-title green">completed</text>
+<text x="1130" y="344" class="body muted">保存最终回答</text>
+<path d="M296 328 H352" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M634 328 H690" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M972 328 H1108" class="result" marker-end="url(#arrow-green)"/>
+<text x="1040" y="312" class="route-label green" text-anchor="middle">无 ToolCall</text>
+<rect x="692" y="486" width="280" height="112" rx="12" fill="#FFFFFF" stroke="#DCE2ED"/>
+<text x="712" y="524" class="node-title">当前 ToolCall</text>
+<text x="712" y="558" class="body muted">按批次顺序取一项</text>
+<rect x="1110" y="486" width="282" height="112" rx="12" fill="#F5F1FC" stroke="#D9CEED"/>
+<text x="1130" y="524" class="node-title violet">ToolExecutor</text>
+<text x="1130" y="558" class="body muted">参数 / 权限 / 审批</text>
+<path d="M832 384 V484" class="main" marker-end="url(#arrow-purple)"/>
+<text x="852" y="438" class="route-label violet">有 ToolCall</text>
+<path d="M972 542 H1108" class="main" marker-end="url(#arrow-purple)"/>
+<text x="1040" y="526" class="route-label violet" text-anchor="middle">派发</text>
+<rect x="1110" y="706" width="282" height="112" rx="12" fill="#EEF6F3" stroke="#C6DDD4"/>
+<text x="1130" y="744" class="node-title green">ToolResult</text>
+<text x="1130" y="778" class="body muted">回填原 call_id</text>
+<rect x="692" y="706" width="280" height="112" rx="12" fill="#FFFFFF" stroke="#DCE2ED"/>
+<text x="712" y="744" class="node-title">批次游标 +1</text>
+<text x="712" y="778" class="body muted">保留结果后再推进</text>
+<path d="M1251 598 V704" class="result" marker-end="url(#arrow-green)"/>
+<text x="1271" y="658" class="route-label green">结果确定</text>
+<path d="M1110 762 H974" class="result" marker-end="url(#arrow-green)"/>
+<path d="M760 706 V650 H660 V542 H690" class="main" marker-end="url(#arrow-purple)"/>
+<text x="641" y="655" class="route-label violet" text-anchor="end">同批还有调用</text>
+<path d="M692 762 H28 V328 H46" class="result" marker-end="url(#arrow-green)"/>
+<text x="320" y="746" class="route-label green">批次结束 → 下一模型阶段</text>
+<text x="48" y="463" class="node-title">不是“一次工具调用就再问模型”</text>
+<text x="48" y="502" class="body muted">一个响应可以提出多个 ToolCall；</text>
+<text x="48" y="537" class="body muted">它们依次执行，结果按 call_id 配对。</text>
+<text x="48" y="587" class="body muted">显式工具任务复用 Executor，</text>
+<text x="48" y="622" class="body muted">无需先调用模型。</text>
+<text x="48" y="866" class="small muted">以下状态会离开主循环；处理方式见审批与恢复专题。</text>
+<rect x="48" y="886" width="420" height="98" rx="12" fill="#EEF4FB" stroke="#C5D7EC"/>
+<text x="68" y="924" class="node-title blue">waiting_approval</text>
+<text x="68" y="958" class="body muted">等待用户审批；不执行 handler</text>
+<rect x="510" y="886" width="420" height="98" rx="12" fill="#FFFFFF" stroke="#DCE2ED"/>
+<text x="530" y="924" class="node-title">failed / cancelled</text>
+<text x="530" y="958" class="body muted">超限、协议错误或明确取消</text>
+<rect x="972" y="886" width="420" height="98" rx="12" fill="#FFF5E5" stroke="#E8D0A7"/>
+<text x="992" y="924" class="node-title amber">unknown</text>
+<text x="992" y="958" class="body muted">在途副作用结果不明；不重放</text>
+<text x="48" y="1024" class="footnote muted">预算包含模型 / 工具次数、等待超时与宿主上下文字符限制；工具错误的确定结果也会保留。</text>
+</svg>

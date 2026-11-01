@@ -1,0 +1,9 @@
+{"id":"chat","prompt":"你好，请简短介绍你能帮我做什么。","status":"completed","max_tool_calls":0}
+{"id":"add-positive","prompt":"计算 2 + 3","answer_contains":["5"],"required_tools":["add"],"tool_values":{"add":5},"max_tool_calls":1}
+{"id":"add-negative","prompt":"计算 -8 + 3","answer_contains":["-5"],"required_tools":["add"],"tool_values":{"add":-5},"max_tool_calls":1}
+{"id":"add-decimal","prompt":"计算 1.25 + 2.5","answer_contains":["3.75"],"required_tools":["add"],"tool_values":{"add":3.75},"max_tool_calls":1}
+{"id":"search-match","prompt":"搜索 取消","answer_contains":["取消","02-engineering.md"],"required_tools":["files.search"],"tool_values":{"files.search":{"matches":[{"path":"02-engineering.md","line":4,"text":"- 事项：验证任务取消行为；负责人：吴桐；截止：2026-11-08"}],"scanned_files":3,"truncated":false}},"forbidden_tools":["files.write"],"max_tool_calls":1}
+{"id":"search-empty","prompt":"搜索 不存在的词xyz123","required_tools":["files.search"],"tool_values":{"files.search":{"matches":[],"scanned_files":3,"truncated":false}},"forbidden_tools":["files.write"],"max_tool_calls":1}
+{"id":"meeting-await-approval","prompt":"整理会议待办并保存 todos.json","status":"waiting_approval","approval":"stop","required_tools":["files.list","files.read"],"absent_files":["todos.json"]}
+{"id":"meeting-denied","prompt":"整理会议待办并保存 todos.json","status":"failed","expected_error":"approval_denied","approval":"deny","required_tools":["files.read"],"absent_files":["todos.json"]}
+{"id":"meeting-write","prompt":"整理会议待办并保存 todos.json，格式为 task、owner、due 字段的 JSON 数组。","approval":"approve","required_tools":["files.read","files.write"],"artifact_json":{"todos.json":[{"task":"整理首版需求清单","owner":"林舟","due":"2026-11-05"},{"task":"完成交互原型","owner":"陈澄","due":"2026-11-07"},{"task":"补充接口错误码","owner":"周宁","due":"2026-11-06"},{"task":"验证任务取消行为","owner":"吴桐","due":"2026-11-08"},{"task":"编写安装说明","owner":"许安","due":"2026-11-09"},{"task":"检查演示数据","owner":"沈禾","due":"2026-11-10"}]}}

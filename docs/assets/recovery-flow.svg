@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1234" viewBox="0 0 1440 1234" role="img" aria-labelledby="title desc">
+<title id="title">恢复：先确认发生过什么，再决定能否继续</title>
+<desc id="desc">正常执行先保存inflight，再派发调用；调用返回后清除inflight、合并暂停取消请求并保存状态。运行中暂停在阶段边界生效，resume恢复原pending或waiting_approval且不会批准工具。启动时已有终态保持，非终态有inflight时副作用结果标记unknown，模型或只读中断标记failed；无inflight先校验模型、工作区、工具和Skill等运行身份，不一致失败，通过后保留paused和waiting_approval、running转pending。unknown只有原进程已退出且核查证据提交后才解除阻断，不自动重放，也不改为成功。</desc>
+<defs>
+  <filter id="shadow" x="-8%" y="-8%" width="116%" height="125%"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#24304A" flood-opacity=".045"/></filter>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#7355A6"/></marker>
+  <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#357A68"/></marker>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#668BB4"/></marker>
+  <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#B08036"/></marker>
+  <style>
+    text{font-family:"Segoe UI","Microsoft YaHei","Noto Sans SC","PingFang SC",sans-serif;fill:#29364A}
+    .title{font-size:40px;font-weight:700;letter-spacing:-.8px}
+    .subtitle{font-size:23px;fill:#657187}
+    .eyebrow{font-size:14px;font-weight:650;letter-spacing:1.4px;fill:#7B8292}
+    .node-title{font-size:28px;font-weight:650;letter-spacing:-.5px}
+    .code-title{font-size:24px;font-weight:600;letter-spacing:-.2px}
+    .body{font-size:21px}
+    .small{font-size:19px}
+    .executor-title{font-size:23px;font-weight:600}
+    .adapter-title{font-size:21px;font-weight:600}
+    .adapter-detail{font-size:17px}
+    .group-label{font-size:17px;font-weight:600;letter-spacing:.4px}
+    .step{font-size:14px;font-weight:700;fill:#7355A6}
+    .route-label{font-size:17px;font-weight:550}
+    .legend{font-size:16px;fill:#657187}
+    .footnote{font-size:20px}
+    .muted{fill:#657187}.violet{fill:#7355A6}.green{fill:#357A68}.blue{fill:#668BB4}.amber{fill:#94671F}
+    .card{filter:url(#shadow)}
+    .main,.result,.define,.uncertain{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .main{stroke:#7355A6}.result{stroke:#357A68}.define{stroke:#668BB4;stroke-dasharray:5 5}.uncertain{stroke:#B08036;stroke-dasharray:6 4}
+  </style>
+</defs>
+<rect x="1" y="1" width="1438" height="1232" rx="24" fill="#FBFCFE" stroke="#E1E6EF"/>
+<text x="48" y="42" class="eyebrow violet">ASTRA HARNESS / CHECKPOINT &amp; RECOVERY</text>
+<text x="48" y="96" class="title">恢复：先确认发生过什么，再决定能否继续</text>
+<text x="48" y="133" class="subtitle">检查点保存进度；inflight 标记尚未确认结果的调用。</text>
+<text x="48" y="186" class="group-label violet">01   正常执行 · 每一步先留证据</text>
+<rect x="48" y="208" width="282" height="104" rx="12" fill="#EEF4FB" stroke="#C5D7EC"/>
+<text x="68" y="246" class="node-title blue">保存 inflight</text>
+<text x="68" y="280" class="body muted">派发前写入在途标记</text>
+<rect x="402" y="208" width="282" height="104" rx="12" fill="#FFFFFF" stroke="#DCE2ED"/>
+<text x="422" y="246" class="node-title">执行当前阶段</text>
+<text x="422" y="280" class="body muted">模型，或一个工具调用</text>
+<rect x="756" y="208" width="282" height="104" rx="12" fill="#FFFFFF" stroke="#DCE2ED"/>
+<text x="776" y="246" class="node-title">清除 inflight</text>
+<text x="776" y="280" class="body muted">合并暂停 / 取消请求</text>
+<rect x="1110" y="208" width="282" height="104" rx="12" fill="#EEF6F3" stroke="#C6DDD4"/>
+<text x="1130" y="246" class="node-title green">保存检查点</text>
+<text x="1130" y="280" class="body muted">结果、状态、事件</text>
+<path d="M330 260 H400" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M684 260 H754" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M1038 260 H1108" class="main" marker-end="url(#arrow-purple)"/>
+<text x="48" y="358" class="group-label violet">02   用户控制 · 暂停不是取消，也不是审批通过</text>
+<rect x="48" y="380" width="390" height="104" rx="12" fill="#FFFFFF" stroke="#DCE2ED"/>
+<text x="68" y="418" class="node-title">调用中请求 pause</text>
+<text x="68" y="452" class="body muted">先等当前调用返回</text>
+<rect x="525" y="380" width="390" height="104" rx="12" fill="#EEF4FB" stroke="#C5D7EC"/>
+<text x="545" y="418" class="node-title blue">边界保存 paused</text>
+<text x="545" y="452" class="body muted">保存原来的恢复状态</text>
+<rect x="1002" y="380" width="390" height="104" rx="12" fill="#EEF6F3" stroke="#C6DDD4"/>
+<text x="1022" y="418" class="node-title green">显式 resume</text>
+<text x="1022" y="452" class="body muted">回原 pending / 审批等待</text>
+<path d="M438 432 H523" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M915 432 H1000" class="result" marker-end="url(#arrow-green)"/>
+<text x="48" y="540" class="group-label violet">03   启动恢复 · 依据已保存证据分流</text>
+<rect x="48" y="566" width="248" height="108" rx="12" fill="#FFFFFF" stroke="#DCE2ED"/>
+<text x="68" y="604" class="node-title">启动 / 重开</text>
+<text x="68" y="638" class="body muted">既有终态保持</text>
+<rect x="354" y="566" width="280" height="108" rx="12" fill="#EEF4FB" stroke="#C5D7EC"/>
+<text x="374" y="604" class="node-title blue">读取检查点</text>
+<text x="374" y="638" class="body muted">检查 inflight 标记</text>
+<path d="M296 620 H352" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M634 620 H722" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M668 620 V920" class="main"/>
+<rect x="724" y="566" width="668" height="108" rx="12" fill="#FFF5E5" stroke="#E8D0A7"/>
+<text x="744" y="604" class="node-title amber">有 inflight · 副作用</text>
+<text x="744" y="638" class="body muted">unknown · 结果不明，不重放</text>
+<rect x="724" y="716" width="668" height="108" rx="12" fill="#FFFFFF" stroke="#DCE2ED"/>
+<text x="744" y="754" class="node-title">有 inflight · 模型 / 只读</text>
+<text x="744" y="788" class="body muted">failed / interrupted · 当前不自动重试</text>
+<path d="M668 770 H722" class="main" marker-end="url(#arrow-purple)"/>
+<rect x="724" y="866" width="668" height="108" rx="12" fill="#EEF4FB" stroke="#C5D7EC"/>
+<text x="744" y="904" class="node-title blue">无 inflight · 先核对运行身份</text>
+<text x="744" y="938" class="body muted">模型 / 目录 / 工具 / Skill，不一致则 failed</text>
+<path d="M668 920 H722" class="main" marker-end="url(#arrow-purple)"/>
+<text x="48" y="761" class="node-title">恢复依据是已保存证据，</text>
+<text x="48" y="803" class="node-title">不是把整个目标再跑一遍。</text>
+<text x="48" y="859" class="body muted">paused 与审批等待会保留；</text>
+<text x="48" y="896" class="body muted">不会因重启获得新权限。</text>
+<path d="M1058 974 V1002" class="result" marker-end="url(#arrow-green)"/>
+<text x="1078" y="997" class="route-label green">校验通过</text>
+<rect x="724" y="1004" width="668" height="80" rx="10" fill="#EEF6F3" stroke="#C6DDD4"/>
+<text x="744" y="1037" class="body green">paused 保持  /  waiting_approval 保持</text>
+<text x="744" y="1067" class="body muted">running → pending；由 Worker 接续</text>
+<text x="48" y="1050" class="small muted">未完成的暂停请求会先进入 paused。</text>
+<path d="M48 1112 H1392" stroke="#DCE2ED"/>
+<text x="48" y="1147" class="footnote amber">unknown 核查：先确认原进程退出并提交核查说明，才解除后续任务阻断。</text>
+<text x="48" y="1180" class="footnote muted">原任务仍是 unknown；不改成 completed，不重新执行结果不明的写操作。</text>
+<text x="48" y="1210" class="small muted">运行中的超时、断连或工具异常，同样依据副作用结果是否确定处理；不是所有错误都进入 unknown。</text>
+</svg>

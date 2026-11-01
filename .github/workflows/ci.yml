@@ -1,0 +1,38 @@
+name: Checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.10', '3.14']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install locked runtime dependencies
+        run: |
+          python -m pip install --require-hashes -r requirements.lock
+          python -m pip install --no-deps -e .
+      - name: Python regression
+        run: python -X utf8 -m unittest discover -s tests -v
+      - name: JavaScript regression
+        run: node --test tests/frontend/markdown.test.mjs tests/frontend/state.test.mjs tests/frontend/knowledge.test.mjs
+      - name: Acceptance and benchmark
+        run: |
+          python -X utf8 -m astra_harness eval
+          python -X utf8 -m astra_harness benchmark
+      - name: Documentation and compilation
+        run: |
+          python -X utf8 scripts/check_docs.py
+          python -X utf8 -m compileall -q astra_harness examples tests scripts
+      - name: Build wheel
+        run: python -m pip wheel --no-deps . --wheel-dir dist

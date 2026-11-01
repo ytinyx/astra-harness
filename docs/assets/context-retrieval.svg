@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1090" viewBox="0 0 1440 1090" role="img" aria-labelledby="title desc">
+<title id="title">检索先给证据，再进入受限上下文</title>
+<desc id="desc">索引准备由显式工具操作完成：读取允许目录中的文档，分块持久化到 SQLite。可选 Embedding 在审批后发送片段并生成向量侧表。检索必须通过统一 ToolRegistry 和 ToolExecutor，默认是词法字面检索，可选语义检索使用独立 Provider 且查询会外传。两路都核对来源、语料与索引，不把过期数据作为正确引用。命中结果携带路径、行列、片段及摘要且受数量和字符上限限制。在 Agent 任务中 ToolResult 与调用配对进入消息，下一次模型阶段前 fit_state 按整轮裁剪历史；当前任务仍超限则 context_limit，禁止模型请求。显式单工具操作到结果结束，不自动调用模型。检索内容是数据，不提升权限。</desc>
+<defs>
+  <filter id="shadow" x="-8%" y="-8%" width="116%" height="125%"><feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#24304A" flood-opacity=".045"/></filter>
+  <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#7355A6"/></marker>
+  <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#357A68"/></marker>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#668BB4"/></marker>
+  <marker id="arrow-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 5 L1 9 Z" fill="#B08036"/></marker>
+  <style>
+    text{font-family:"Segoe UI","Microsoft YaHei","Noto Sans SC","PingFang SC",sans-serif;fill:#29364A}
+    .title{font-size:40px;font-weight:700;letter-spacing:-.8px}
+    .subtitle{font-size:23px;fill:#657187}
+    .eyebrow{font-size:14px;font-weight:650;letter-spacing:1.4px;fill:#7B8292}
+    .node-title{font-size:28px;font-weight:650;letter-spacing:-.5px}
+    .code-title{font-size:24px;font-weight:600;letter-spacing:-.2px}
+    .body{font-size:21px}
+    .small{font-size:19px}
+    .executor-title{font-size:23px;font-weight:600}
+    .adapter-title{font-size:21px;font-weight:600}
+    .adapter-detail{font-size:17px}
+    .group-label{font-size:17px;font-weight:600;letter-spacing:.4px}
+    .step{font-size:14px;font-weight:700;fill:#7355A6}
+    .route-label{font-size:17px;font-weight:550}
+    .legend{font-size:16px;fill:#657187}
+    .footnote{font-size:20px}
+    .muted{fill:#657187}.violet{fill:#7355A6}.green{fill:#357A68}.blue{fill:#668BB4}.amber{fill:#94671F}
+    .card{filter:url(#shadow)}
+    .main,.result,.define,.uncertain{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .main{stroke:#7355A6}.result{stroke:#357A68}.define{stroke:#668BB4;stroke-dasharray:5 5}.uncertain{stroke:#B08036;stroke-dasharray:6 4}
+  </style>
+</defs>
+<rect x="1" y="1" width="1438" height="1088" rx="24" fill="#FBFCFE" stroke="#E1E6EF"/>
+<text x="48" y="42" class="eyebrow violet">ASTRA HARNESS / RETRIEVAL &amp; CONTEXT</text>
+<text x="48" y="96" class="title">检索先给证据，再进入受限上下文</text>
+<text x="48" y="133" class="subtitle">检索是一种工具能力，不是每次对话都会自动注入的隐藏步骤。</text>
+<text x="48" y="188" class="group-label blue">01 / 准备索引：显式操作，沿用工具权限与审批</text>
+<rect x="48" y="208" width="260" height="104" rx="12" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<text x="68" y="243" class="code-title ">导入本地文档</text>
+<text x="68" y="278" class="small muted">允许目录 / 文件校验</text>
+<rect x="360" y="208" width="280" height="104" rx="12" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<text x="380" y="243" class="code-title ">分块 + SQLite</text>
+<text x="380" y="278" class="small muted">片段位置 + 来源 hash</text>
+<rect x="740" y="208" width="300" height="104" rx="12" fill="#EEF4FB" stroke="#C5D7EC" class="card"/>
+<text x="760" y="243" class="code-title blue">可选向量适配器</text>
+<text x="760" y="278" class="small muted">向量生成 / 侧表持久化</text>
+<rect x="1092" y="208" width="300" height="104" rx="12" fill="#EBF6F1" stroke="#BDDDCF" class="card"/>
+<text x="1112" y="243" class="code-title green">Embedding provider</text>
+<text x="1112" y="278" class="small muted">独立配置 · 可能计费</text>
+<path d="M308 260 H358" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M640 260 H738" class="define" marker-end="url(#arrow-blue)"/>
+<text x="689" y="244" class="route-label blue" text-anchor="middle">显式重建</text>
+<path d="M1040 244 H1090" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M1092 284 H1042" class="result" marker-end="url(#arrow-green)"/>
+<text x="1066" y="229" class="route-label violet" text-anchor="middle">片段</text>
+<text x="1066" y="306" class="route-label green" text-anchor="middle">向量</text>
+<path d="M48 342 H1392" fill="none" stroke="#DCE2ED"/>
+<text x="48" y="378" class="group-label violet">02 / 检索：按调用选择路径，结果保留来源</text>
+<rect x="48" y="422" width="260" height="140" rx="12" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<text x="68" y="457" class="code-title ">检索工具调用</text>
+<text x="68" y="492" class="small muted">查询 + 指定集合</text>
+<text x="68" y="523" class="small muted">经 Registry / Executor</text>
+<rect x="360" y="400" width="280" height="82" rx="12" fill="#F2EFFA" stroke="#D8CEEC" class="card"/>
+<text x="380" y="435" class="code-title violet">词法检索 · 默认</text>
+<text x="380" y="470" class="small muted">FTS5 / 字面匹配</text>
+<rect x="360" y="524" width="280" height="82" rx="12" fill="#EEF4FB" stroke="#C5D7EC" class="card"/>
+<text x="380" y="559" class="code-title blue">语义检索 · 可选</text>
+<text x="380" y="594" class="small muted">审批后生成查询向量</text>
+<rect x="724" y="422" width="306" height="140" rx="12" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<text x="744" y="457" class="code-title ">核对来源与索引</text>
+<text x="744" y="492" class="small muted">路径 / hash / 片段位置</text>
+<text x="744" y="523" class="small muted">过期跳过或明确报错</text>
+<rect x="1092" y="422" width="300" height="140" rx="12" fill="#EBF6F1" stroke="#BDDDCF" class="card"/>
+<text x="1112" y="457" class="code-title green">命中片段</text>
+<text x="1112" y="492" class="small muted">路径 + 行列 + 正文</text>
+<text x="1112" y="523" class="small muted">数量与返回字符量受限</text>
+<path d="M308 492 H334 V441 H358" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M334 492 V565 H358" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M640 441 H682 V492 H722" class="result" marker-end="url(#arrow-green)"/>
+<path d="M640 565 H682 V492" class="result" marker-end="url(#arrow-green)"/>
+<path d="M1030 492 H1090" class="result" marker-end="url(#arrow-green)"/>
+<circle cx="334" cy="492" r="3" fill="#7355A6"/><circle cx="682" cy="492" r="3" fill="#357A68"/>
+<text x="360" y="637" class="small blue">查询也会外传；失败不冒充词法结果。</text>
+<text x="724" y="637" class="small muted">语料、模型或维度不兼容时，提示重建。</text>
+<path d="M1242 562 V680 H178 V718" class="result" marker-end="url(#arrow-green)"/>
+<text x="684" y="669" class="route-label green" text-anchor="middle">Agent 任务：ToolResult 回到当前消息</text>
+<rect x="48" y="720" width="260" height="116" rx="12" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<text x="68" y="755" class="code-title ">写入当前消息</text>
+<text x="68" y="790" class="small muted">与 ToolCall 按 id 配对</text>
+<rect x="360" y="720" width="340" height="116" rx="12" fill="#F2EFFA" stroke="#D8CEEC" class="card"/>
+<text x="380" y="755" class="code-title violet">fit_state</text>
+<text x="380" y="790" class="body muted">下一模型阶段前检查</text>
+<text x="380" y="821" class="body muted">按整轮裁剪较早历史</text>
+<rect x="790" y="720" width="260" height="116" rx="12" fill="#FFFFFF" stroke="#DCE2ED" class="card"/>
+<text x="810" y="755" class="code-title ">模型请求</text>
+<text x="810" y="790" class="small muted">保留当前任务及工具配对</text>
+<rect x="1114" y="720" width="278" height="116" rx="12" fill="#EBF6F1" stroke="#BDDDCF" class="card"/>
+<text x="1134" y="755" class="code-title green">按证据继续</text>
+<text x="1134" y="790" class="small muted">输出答案，或下一工具阶段</text>
+<path d="M308 778 H358" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M700 778 H788" class="main" marker-end="url(#arrow-purple)"/>
+<path d="M1050 778 H1112" class="main" marker-end="url(#arrow-purple)"/>
+<text x="745" y="761" class="route-label violet" text-anchor="middle">预算内</text>
+<path d="M530 836 V896 H788" class="uncertain" marker-end="url(#arrow-amber)"/>
+<text x="620" y="884" class="route-label amber" text-anchor="middle">仍超限</text>
+<rect x="790" y="862" width="260" height="72" rx="10" fill="#FFF5E5" stroke="#E8D0A7"/>
+<text x="810" y="893" class="code-title amber">context_limit</text>
+<text x="810" y="925" class="small amber">不发送模型请求</text>
+<path d="M48 971 H1392" fill="none" stroke="#DCE2ED"/>
+<text x="48" y="1006" class="footnote muted">显式单工具操作在结果处结束；下半段仅表示 Agent 任务后续的模型阶段。</text>
+<text x="48" y="1039" class="footnote muted">检索片段与 Skill 都是任务数据，不能提升权限；字符预算是本地估算，不是供应商 token 计费。</text>
+</svg>
