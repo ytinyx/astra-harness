@@ -1,6 +1,6 @@
 # 精确编辑、恢复与受控命令
 
-[项目首页](../README.md) · [文档地图](README.md) · [当前交接](../HANDOFF.md)
+[项目首页](../README.md) · [文档地图](README.md) · [验证状态](../HANDOFF.md)
 
 这组工具接在原有 Harness 执行路径上：`files.inspect` 检查文件摘要，`files.edit` 按条件修改，`files.restore` 按条件恢复；可选的 `commands.run` 执行宿主明确允许的程序。它们都注册为普通 Tool，使用同一执行器、权限、审批、运行预算和事件记录，不另建执行循环。
 

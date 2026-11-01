@@ -1,6 +1,6 @@
 # 可选 Embedding：配置与使用
 
-[项目首页](../README.md) · [文档地图](README.md) · [当前交接](../HANDOFF.md)
+[项目首页](../README.md) · [文档地图](README.md) · [验证状态](../HANDOFF.md)
 
 本页面向已经跑通本地知识库、希望自行接入向量服务的使用者。首次运行项目请先完成 [新手入门](GETTING_STARTED.md)；仅需要按词查找原文时，继续使用 [本地词法检索](KNOWLEDGE.md) 即可。
 

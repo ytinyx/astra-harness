@@ -1,6 +1,6 @@
 # 在页面管理 MCP 服务
 
-[项目首页](../README.md) · [文档地图](README.md) · [当前交接](../HANDOFF.md)
+[项目首页](../README.md) · [文档地图](README.md) · [验证状态](../HANDOFF.md)
 
 本页面向希望添加本地 MCP 服务、无需编写 Python 注册代码的使用者。先完成 [新手入门](GETTING_STARTED.md)；若要把服务写入启动配置，使用 [MCP 指南](MCP.md) 的 `--mcp-config` 入口。
 

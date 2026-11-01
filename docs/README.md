@@ -1,8 +1,8 @@
 # 文档地图
 
-[项目首页](../README.md) · [当前交接](../HANDOFF.md) · [版本说明](VERSION_TIMELINE.md)
+[项目首页](../README.md) · [验证状态](../HANDOFF.md) · [版本与升级](VERSION_TIMELINE.md)
 
-先完成一个任务，再按需要理解内核或接入能力。所有指南描述当前 0.4.0；本副本提供复现入口，不附原项目的历史仓库、私人日志或原始实验报告。
+先完成一个任务，再按需要理解内核或接入能力。所有指南对应 **0.4.0**；下载固定版本见 [GitHub Release](https://github.com/ytinyx/astra-harness/releases/tag/v0.4.0)。
 
 ## 首次使用
 
@@ -40,9 +40,9 @@
 - [真实模型验收准备](LIVE_ACCEPTANCE.md)：任务、预算、脱敏与中止条件，不会因阅读文档自动执行。
 - [安装包验证](PACKAGING.md)：wheel、sdist 与离线安装检查。
 - [贡献约定](../CONTRIBUTING.md) · [安全边界](../SECURITY.md)：修改、验证、凭据与权限。
-- [变更日志](../CHANGELOG.md) · [内部演进索引](VERSION_TIMELINE.md)：变更按软件版本归档，阶段仅用于追溯源码。
+- [变更日志](../CHANGELOG.md) · [版本与升级](VERSION_TIMELINE.md)：了解固定版本、开发分支和升级注意。
 - [项目来源](PROVENANCE.md)：源码、材料与许可证状态。
-- [副本验证状态](../HANDOFF.md)：这份副本的内容范围、实际检查与未执行项。
+- [验证状态](../HANDOFF.md)：自动化验收范围、证据入口与未验证的能力。
 
 ## 如何读实验记录
 

@@ -1,6 +1,6 @@
 # 任务模型配置档案
 
-[项目首页](../README.md) · [文档地图](README.md) · [当前交接](../HANDOFF.md)
+[项目首页](../README.md) · [文档地图](README.md) · [验证状态](../HANDOFF.md)
 
 本页说明如何为 Astra 添加、选择和验证自己的任务模型。先完成 [新手入门](GETTING_STARTED.md) 的依赖准备；只想体验执行循环时，使用默认离线示例，无需配置密钥。
 

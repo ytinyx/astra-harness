@@ -1,8 +1,8 @@
 # 本地打包与安装验收
 
-[项目首页](../README.md) · [文档地图](README.md) · [当前交接](../HANDOFF.md)
+[项目首页](../README.md) · [文档地图](README.md) · [验证状态](../HANDOFF.md)
 
-第一次体验项目，请先按 [新手入门](GETTING_STARTED.md) 从源码运行。应用需要 Python 3.10+ 和锁定的后端依赖。新手使用 `uv sync --locked --inexact`；打包是另一项开发验证，需要本机已有构建工具及预先下载的依赖 wheelhouse。
+第一次体验项目，请从 [GitHub Releases](https://github.com/ytinyx/astra-harness/releases) 获取源码，按 [新手入门](GETTING_STARTED.md) 运行。应用需要 Python 3.10+ 和锁定的后端依赖。新手使用 `uv sync --locked --inexact`；打包是另一项开发验证，需要本机已有构建工具及预先下载的依赖 wheelhouse。
 
 | 形式 | 包含内容 | 使用边界 |
 | --- | --- | --- |
@@ -11,7 +11,7 @@
 
 `scripts.recovery_lab`、`scripts.task_recovery_lab`、`scripts.file_range_lab`、`scripts.tool_identity_lab` 和打包脚本不在 wheel 内。复现实验需使用源码目录或解包后的 sdist，不能把安装 wheel 当成安装了整套源码工具。
 
-公开源码包提供实验协议和可运行脚本，不附原始实验报告、私人日志或 Git 历史。运行脚本会在自己的输出目录中生成新结果；保留真实执行时间和适用环境，不把预期输出当作已经通过。复现方法见 [评测说明](EVALUATION.md)。
+GitHub 自动生成的源码归档与本指南构建的 sdist 是两种文件：前者对应标签提交，后者按 Python 打包清单生成。归档不包含 `.git`，`git clone` 则保留公开提交历史。实验脚本在本地生成新报告；复现方法见 [评测说明](EVALUATION.md)。
 
 ## 在已有构建环境中执行
 
@@ -72,4 +72,4 @@ python -X utf8 -m scripts.package_release --wheelhouse .local/wheelhouse --requi
 
 `runtime_bytes_identical` 表示源码快照、wheel 和从 sdist 重建的 wheel 中运行时文件逐字节一致；安装检查还核对实际安装文件，并将每个安装环境计算的工具语义／说明摘要与源码比较；指定附加解释器后，才会形成跨解释器验证。它不表示两个归档文件必定位元相同：时间戳等构建元数据可能改变归档 SHA-256。不要把运行字节一致写成已经实现可重复构建。
 
-本入口仅制作并验证本地包，不上传包索引、不发布版本，也不决定项目许可证。是否通过，以本次生成的 `package-report.json` 和对应日志为准；项目支持范围见 [当前说明](../HANDOFF.md)。
+本脚本只构建和验证本地包，不创建 GitHub Release，也不上传 PyPI。是否通过，以本次生成的 `package-report.json` 和日志为准；CI 的 wheel 构建通过不代表已执行这里完整的 sdist 重建与独立安装流程。当前验证范围见 [验证状态](../HANDOFF.md)，正式源码版本见 [GitHub Releases](https://github.com/ytinyx/astra-harness/releases)。

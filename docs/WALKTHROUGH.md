@@ -1,6 +1,6 @@
 # 源码阅读路线
 
-[项目首页](../README.md) · [文档地图](README.md) · [当前交接](../HANDOFF.md)
+[项目首页](../README.md) · [文档地图](README.md) · [验证状态](../HANDOFF.md)
 
 面向想理解或修改 Astra Harness 的开发者。先跟踪一个任务，再查看可选适配器；无需从所有模块或历史变更开始读。首次安装见 [新手入门](GETTING_STARTED.md)，运行语义见 [架构](ARCHITECTURE.md)，讲解顺序见 [演示路线](DEMO.md)。
 
@@ -91,4 +91,4 @@ CLI 的 `pause RUN_ID`、`resume RUN_ID` 直接打开指定数据库，不能与
 - 同步调用超时只结束等待；命令工具有自己的进程清理机制，但允许的程序仍拥有宿主账号能力，不是 OS 沙箱。
 - SQLite 检查点和事件支持本机恢复，不提供多节点调度或任意工具的 exactly-once 保证。
 
-当前执行证据看 [HANDOFF](../HANDOFF.md)，阶段演进看 [版本说明](VERSION_TIMELINE.md)，实现来源与协作方式看 [PROVENANCE](PROVENANCE.md)。本页是阅读路线，不另复制测试成绩或供应商成功率。
+当前执行证据看 [HANDOFF](../HANDOFF.md)，软件版本看 [版本说明](VERSION_TIMELINE.md)，实现来源与协作方式看 [PROVENANCE](PROVENANCE.md)。本页是阅读路线，不另复制测试成绩或供应商成功率。

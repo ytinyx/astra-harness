@@ -1,6 +1,6 @@
 # 为本次任务选择一份本地 Skill
 
-[项目首页](../README.md) · [文档地图](README.md) · [当前交接](../HANDOFF.md)
+[项目首页](../README.md) · [文档地图](README.md) · [验证状态](../HANDOFF.md)
 
 本页说明如何编写、启用和选用工作区内的任务指导。先完成 [新手入门](GETTING_STARTED.md)，再使用下文独立练习目录；无需编写 Python，也不需要安装插件。
 
@@ -119,4 +119,4 @@ $SkillOptions = @('--workspace', $SkillWorkspace, '--database', (Join-Path $Skil
 
 格式与读取入口见 [本地加载器](../astra_harness/builtin/local_skills.py)，启用记录见 [内容目录](../astra_harness/skill_catalog.py)，单任务快照见 [task_context.py](../astra_harness/task_context.py)。复现与结果解释见 [评测说明](EVALUATION.md)，原文件与执行安全边界见 [SECURITY](../SECURITY.md)。
 
-下一步：阅读 [模型档案](MODEL_PROFILES.md) 接入自己的任务模型，或按 [扩展指南](EXTENDING.md) 查看指导文本进入运行快照的位置。阶段命名见 [版本演进](VERSION_TIMELINE.md)。
+下一步：阅读 [模型档案](MODEL_PROFILES.md) 接入自己的任务模型，或按 [扩展指南](EXTENDING.md) 查看指导文本进入运行快照的位置。软件版本见 [版本说明](VERSION_TIMELINE.md)。

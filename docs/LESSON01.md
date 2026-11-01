@@ -1,6 +1,6 @@
 # 第一课：一次真实的加法工具往返
 
-[项目首页](../README.md) · [文档地图](README.md) · [当前交接](../HANDOFF.md)
+[项目首页](../README.md) · [文档地图](README.md) · [验证状态](../HANDOFF.md)
 
 先按 [新手教程](GETTING_STARTED.md) 安装项目依赖，再在项目根目录运行本课命令。本课缩小到一个加法工具，完整运行时见 [源码导读](WALKTHROUGH.md)。
 

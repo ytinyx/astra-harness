@@ -1,6 +1,6 @@
 # 带来源引用的本地词法检索
 
-[项目首页](../README.md) · [文档地图](README.md) · [当前交接](../HANDOFF.md)
+[项目首页](../README.md) · [文档地图](README.md) · [验证状态](../HANDOFF.md)
 
 `KnowledgePlugin` 把材料导入、搜索和移除转换为普通 `Tool`，继续经过既有执行器的参数、权限、审批和预算检查。索引使用本地 SQLite FTS5 trigram，**不是 embedding、向量相似度或语义检索**。先按下文用两个合成集合练习导入与来源核对；需要向量检索时，再看独立的 [Embedding 指南](EMBEDDING.md)。完成环境安装即可开始，不需要真实模型密钥。
 

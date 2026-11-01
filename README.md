@@ -4,15 +4,22 @@
 
 模型负责提出下一步；Astra Harness 负责检查工具调用、保存进度、等待批准，并在异常后判断能否继续。执行内核可以独立使用，本地网页用于操作任务、查看文件和追踪过程。
 
-**当前版本：0.4.0 · 本地单用户。** 功能与变更见 [变更日志](CHANGELOG.md)。
+**当前版本：[0.4.0](https://github.com/ytinyx/astra-harness/releases/tag/v0.4.0) · 本地单用户。** [变更日志](CHANGELOG.md) · [CI 检查](https://github.com/ytinyx/astra-harness/actions/workflows/ci.yml) · [MIT](LICENSE)
 
-[快速开始](#快速开始) · [运行机制](#运行机制) · [扩展入口](#扩展入口) · [文档地图](docs/README.md) · [当前交接](HANDOFF.md)
+[快速开始](#快速开始) · [运行机制](#运行机制) · [扩展入口](#扩展入口) · [文档地图](docs/README.md) · [验证状态](HANDOFF.md)
 
 ## 快速开始
 
 入门命令面向 Windows PowerShell，使用 **Python 3.10+ 和 uv**。第一次运行 Python 项目，可以直接跟随 [新手教程](docs/GETTING_STARTED.md)。
 
-在项目根目录执行：
+先从 [Release 页面](https://github.com/ytinyx/astra-harness/releases/tag/v0.4.0) 下载并解压源码，在解压后的项目根目录执行。使用 Git 也可以获取同一固定版本：
+
+```powershell
+git clone --branch v0.4.0 --depth 1 https://github.com/ytinyx/astra-harness.git
+cd astra-harness
+```
+
+安装依赖并启动：
 
 ```powershell
 uv sync --locked --inexact
@@ -69,7 +76,7 @@ Checkpoint 保存进度，但不能让任意外部副作用“恰好执行一次
 
 ![本地工作台中的合成任务、执行过程与审批入口](docs/images/workbench-current.jpg)
 
-上图用于观察工作台中的任务、执行记录与审批入口，采用本地合成材料。界面截图不代表真实模型的任务成功率；具体操作与验证范围见 [演示路线](docs/DEMO.md) 和 [副本验证状态](HANDOFF.md)。
+上图用于观察工作台中的任务、执行记录与审批入口，采用本地合成材料。界面截图不代表真实模型的任务成功率；具体操作与验证范围见 [演示路线](docs/DEMO.md) 和 [验证状态](HANDOFF.md)。
 
 ## 扩展入口
 
@@ -93,9 +100,9 @@ Checkpoint 保存进度，但不能让任意外部副作用“恰好执行一次
 - 单元与集成回归检查状态、参数、权限、预算、持久化及接口契约。
 - 真实子进程退出实验检查恢复窗口、未知结果识别与重复副作用。
 - 合成任务用独立产物判据核对结果；固定规则模型成绩不代表 LLM 推理能力。
-- 真实模型需另行按任务、输入、模型配置和费用范围验收；本副本不附历史联调报告，不把离线结果当成真实模型成绩。
+- 真实模型需按具体任务、模型配置与费用范围单独验收，不能将离线结果作为真实模型成绩。
 
-[评测与实验复现](docs/EVALUATION.md) 解释命令、指标和实验限制；[副本验证状态](HANDOFF.md) 区分实际执行与未执行项。测试数量是覆盖线索，不是质量保证或任务成功率。
+[评测与实验复现](docs/EVALUATION.md) 解释命令、指标和实验限制；[验证状态](HANDOFF.md) 区分实际执行与未执行项。测试数量是覆盖线索，不是质量保证或任务成功率。
 
 ## 当前需求的支持与限制
 
@@ -115,6 +122,6 @@ Checkpoint 保存进度，但不能让任意外部副作用“恰好执行一次
 | 理解 Harness 内核 | [架构](docs/ARCHITECTURE.md) → [源码导读](docs/WALKTHROUGH.md) |
 | 接入自己的能力 | [扩展指南](docs/EXTENDING.md) → [配置专题](docs/README.md#按需接入能力) |
 | 做可复现实验 | [评测](docs/EVALUATION.md) → [真实模型验收准备](docs/LIVE_ACCEPTANCE.md) |
-| 参与开发或讲解版本 | [贡献指南](CONTRIBUTING.md) · [变更](CHANGELOG.md) · [版本说明](docs/VERSION_TIMELINE.md) |
+| 参与开发或讲解版本 | [贡献指南](CONTRIBUTING.md) · [变更](CHANGELOG.md) · [版本与升级](docs/VERSION_TIMELINE.md) |
 
 本项目是自主智能体运行框架的学习与工程实践，采用 [MIT License](LICENSE)。代码和文档含 AI 辅助工作；设计取舍、材料来源及许可边界见 [项目来源](docs/PROVENANCE.md)。

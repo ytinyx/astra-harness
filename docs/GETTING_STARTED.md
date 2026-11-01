@@ -1,6 +1,6 @@
 # 新手上手：完成第一个文件任务
 
-[项目首页](../README.md) · [文档地图](README.md) · [当前交接](../HANDOFF.md)
+[项目首页](../README.md) · [文档地图](README.md) · [验证状态](../HANDOFF.md)
 
 本教程面向第一次运行项目的人。你将启动本地工作台，让 Agent 读取三份虚构会议记录，在写入前亲自审批，再查看产物和执行过程。**使用全新演示数据库和固定规则模型，不需要 API Key，不调用外部模型。**
 
@@ -8,7 +8,7 @@
 
 ## 1. 打开项目文件夹和终端
 
-在文件资源管理器中打开项目文件夹，空白处右键选择“在终端中打开”。如果终端不是 PowerShell，在标签页菜单中选择 PowerShell。输入：
+从 [v0.4.0 Release](https://github.com/ytinyx/astra-harness/releases/tag/v0.4.0) 下载 **Source code (zip)** 并解压；已经克隆仓库的使用者可直接使用本地目录。打开同时包含 `README.md` 和 `pyproject.toml` 的项目根目录，空白处右键选择“在终端中打开”。如果终端不是 PowerShell，在标签页菜单中选择 PowerShell。输入：
 
 ```powershell
 Get-Location
@@ -139,4 +139,4 @@ $Todos.Count
 | 运行变成 `unknown` | 先停止原服务并核查实际效果，重开后记录核查说明；不要盲目重试写入。详见 [演示路线](DEMO.md)。 |
 | 任意提问只得到规则演示说明 | 当前模型只支持预设示例；真实模型需要另行配置和验证。 |
 
-回归命令、实验协议与实际验证范围分别见 [开发指南](../CONTRIBUTING.md)、[评测文档](EVALUATION.md) 和 [交接记录](../HANDOFF.md)。本文讲使用步骤，历史测试通过不代表你当前环境已经完成验收。
+回归命令、实验协议与实际验证范围分别见 [开发指南](../CONTRIBUTING.md)、[评测文档](EVALUATION.md) 和 [验证状态](../HANDOFF.md)。本文讲使用步骤；请在自己的环境中核对实际输出和产物。
