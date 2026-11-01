@@ -27,7 +27,7 @@ uv sync --locked --inexact
 .\.venv\Scripts\python.exe -X utf8 -m astra_harness serve --demo-files --port 18765
 ```
 
-打开 **http://127.0.0.1:18765**，确认页面显示“离线演示”，再输入：
+服务启动后，在本机浏览器打开 [http://127.0.0.1:18765](http://127.0.0.1:18765)，确认页面显示“离线演示”，再输入：
 
 > 整理会议待办并保存 todos.json
 
