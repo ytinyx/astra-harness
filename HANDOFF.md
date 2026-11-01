@@ -12,7 +12,7 @@
 
 ## 验证状态
 
-下表保留针对这份源码候选实际执行的本地检查，不表示远端发布或 CI 已完成。发布目录复制时另行核对文件清单与散列；不将历史结果当作本次验收。
+下表保留源码公开前实际执行的本地验收及当时范围；远端提交与 CI 结果在“首次公开整理”中单列，不将过去检查当作后续提交的重测。
 
 | 检查 | 状态 | 验证边界 |
 | --- | --- | --- |
@@ -35,9 +35,10 @@
 
 ## 首次公开整理（0.4.0）
 
-- 已确定：所有者选择 [MIT License](LICENSE)，公开目标为 [ytinyx/astra-harness](https://github.com/ytinyx/astra-harness)。
-- 正在准备：整理公开文件清单、许可元数据和独立 Git 初始提交；不导入原项目历史或 S 系列标签。
-- 待核实：首次推送与远端 CI 的实际结果。本段不将授权或本地检查写成远端操作已完成，也不声明已经发布安装包。
+- 已公开：0.4.0 源码采用 [MIT License](LICENSE) 发布至公开仓库 [ytinyx/astra-harness](https://github.com/ytinyx/astra-harness)，首提交为 [`54b6b32`](https://github.com/ytinyx/astra-harness/commit/54b6b32b1255a70a8fa470691cf81dc19493b2bb)。未导入原项目历史或 S 系列标签。
+- 首轮 CI：[Actions 记录](https://github.com/ytinyx/astra-harness/actions/runs/41314614176) 失败；Ubuntu／Python 3.10 执行 933 项测试，1 项失败、12 项跳过。失败源于把 Windows `.cmd` 路径断言用于所有平台。
+- 测试修正：按平台约束 `.cmd` 断言，补充 `inspect=True` 下不存在程序在启动前被拒绝的覆盖；标记文件瞬态读取错误在原期限内重试。仅修改测试，runtime 未改。本地专用临时目录已完成一轮 17 项 MCP 配置连接测试，全部通过。
+- 后续结果：以 [main 分支 CI](https://github.com/ytinyx/astra-harness/actions/workflows/ci.yml?query=branch%3Amain) 中对应提交的记录为准；上述本地结果不预先证明后续 CI 通过。本次仅公开源码，未发布 GitHub Release 或 PyPI 安装包。
 
 ## 使用与交付边界
 

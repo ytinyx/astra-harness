@@ -40,7 +40,7 @@ Embedding 的本地 mock 用于检查协议、持久化与排序路径，不能�
 
 ### 公开交付方式
 
-所有者已选择 [MIT License](../LICENSE)，公开目标为 [ytinyx/astra-harness](https://github.com/ytinyx/astra-harness)，当前处于首次推送准备阶段。仓库采用独立 Git 历史，初始提交从本次公开整理开始；不继承原项目提交或内部阶段标签。推送前核对文件清单、凭据忽略规则、来源与版权、安装和图文一致性；完成后分别核实远端提交与 CI。源码公开不等于已发布 GitHub Release 或 PyPI 安装包，实际状态见 [当前交接](../HANDOFF.md)。
+0.4.0 源码已采用 [MIT License](../LICENSE) 公开至 [ytinyx/astra-harness](https://github.com/ytinyx/astra-harness)，独立 Git 历史不继承原项目提交或内部阶段标签。首轮 CI 暴露的平台测试假设已修正；后续 CI 仍按对应提交核实，记录见 [当前交接](../HANDOFF.md)。GitHub Release 与 PyPI 安装包尚未发布，须分别安排构建与验证。
 
 ## 后续候选，需要问题驱动
 

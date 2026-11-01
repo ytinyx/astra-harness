@@ -46,8 +46,12 @@ class MCPProfileConnectionTests(unittest.IsolatedAsyncioTestCase):
         path = self.root / "markers" / name
         deadline = time.monotonic() + limit
         while time.monotonic() < deadline:
-            if path.exists():
+            try:
                 return json.loads(path.read_text(encoding="utf-8"))
+            except (FileNotFoundError, PermissionError, json.JSONDecodeError):
+                # Wait for readable complete JSON within the same deadline;
+                # transient Windows access errors must not race the fixture.
+                pass
             await asyncio.sleep(.01)
         self.fail("trusted fixture marker missing: " + name)
 
@@ -93,7 +97,7 @@ class MCPProfileConnectionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_strict_fields_paths_types_environment_and_transport_separation(self):
         invalid = [{"command": "python"}, {"command": r"\\server\share\python.exe"},
-            {"command": "http://127.0.0.1:1/run"}, {"command": str(self.root / "script.cmd")},
+            {"command": "http://127.0.0.1:1/run"},
             {"cwd": "../elsewhere"}, {"cwd": str(self.root)}, {"args": "-u server.py"},
             {"args": ["bad\0arg"]}, {"args": [""]}, {"timeout": True}, {"timeout": 31}, {"timeout": float("nan")},
             {"env": {"KEY": "secret-value"}}, {"env_refs": {"KEY": "ASTRA_API_KEY"}},
@@ -106,6 +110,21 @@ class MCPProfileConnectionTests(unittest.IsolatedAsyncioTestCase):
                          "http://x:pw@127.0.0.1:1/mcp", "https://example.com/mcp"):
             with self.assertRaises(ValueError):
                 validate_profile_config({"name": "http", "transport": "http", "endpoint": endpoint}, self.root, inspect=False)
+
+    async def test_command_suffix_and_existence_checks_are_distinct(self):
+        command = self.root / "script.cmd"
+        profile = self.profile(command=str(command))
+        # Windows requires .exe at syntax validation; POSIX commands need no
+        # suffix. Metadata validation must still reject a missing executable.
+        if os.name == "nt":
+            with self.assertRaisesRegex(ValueError, "^invalid_mcp_profile$"):
+                validate_profile_config(profile, self.root, inspect=False)
+        else:
+            self.assertEqual(validate_profile_config(profile, self.root, inspect=False)["command"], str(command))
+        missing = self.root / ("missing.exe" if os.name == "nt" else "missing")
+        with patch("subprocess.Popen", side_effect=AssertionError("validation must not spawn")):
+            with self.assertRaisesRegex(ValueError, "^invalid_mcp_profile$"):
+                validate_profile_config(self.profile(command=str(missing)), self.root)
 
     async def test_discovery_only_then_registered_permission_and_approval(self):
         connection = self.connection()
