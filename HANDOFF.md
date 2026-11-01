@@ -40,6 +40,12 @@
 - 测试修正：按平台约束 `.cmd` 断言，补充 `inspect=True` 下不存在程序在启动前被拒绝的覆盖；标记文件瞬态读取错误在原期限内重试。仅修改测试，runtime 未改。本地专用临时目录已完成一轮 17 项 MCP 配置连接测试，全部通过。
 - 后续结果：以 [main 分支 CI](https://github.com/ytinyx/astra-harness/actions/workflows/ci.yml?query=branch%3Amain) 中对应提交的记录为准；上述本地结果不预先证明后续 CI 通过。本次仅公开源码，未发布 GitHub Release 或 PyPI 安装包。
 
+### 离线验收路径兼容修正
+
+第二轮 [CI 记录](https://github.com/ytinyx/astra-harness/actions/runs/41315706704) 中，Ubuntu／Python 3.10 的 934 项 Python 回归与 46 项前端测试通过，随后 `eval` 因相对临时目录与绝对当前目录混用而失败；Ubuntu／Python 3.14 已完成全部步骤。这是离线验收入口的路径兼容问题，不能用前面的测试通过代替命令成功。
+
+修正先将输出根目录解析为绝对路径，再返回可读取的报告位置；当前目录外的显式输出使用绝对路径。两个回归均运行真实离线任务、审批重开与六条产物核对，并在旧代码上复现同一错误。没有修改 Engine、工具权限、审批或预算语义；最终跨平台结果仍以对应提交的 CI 记录为准。
+
 ## 使用与交付边界
 
 - 默认新手路线离线运行；真实模型、外部 Embedding 和 MCP 服务需要使用者显式配置并确认数据与费用范围。

@@ -21,7 +21,8 @@ def evaluate(output_dir=".local/evaluations"):
     from .builtin.models import DemoModel
     from .cli import seed_workspace
 
-    root = Path(output_dir)
+    # Before Python 3.12, mkdtemp can preserve a relative dir on POSIX.
+    root = Path(output_dir).resolve()
     root.mkdir(parents=True, exist_ok=True)
     directory = Path(tempfile.mkdtemp(prefix="run-", dir=root))
     workspace = seed_workspace(directory / "workspace")
@@ -57,6 +58,10 @@ def evaluate(output_dir=".local/evaluations"):
             "six_todos_match": artifact_matches, "idempotent_submission": replay["id"] == submitted["id"],
             "event_count": len(app.events(finished["id"])),
         }
-    report["report"] = (directory / "report.json").relative_to(Path.cwd()).as_posix()
+    report_path = directory / "report.json"
+    try:
+        report["report"] = report_path.relative_to(Path.cwd()).as_posix()
+    except ValueError:
+        report["report"] = report_path.as_posix()
     (directory / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return report
