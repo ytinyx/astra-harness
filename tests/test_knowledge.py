@@ -20,7 +20,7 @@ from astra_harness.tools import Tool, ToolExecutor, ToolRegistry
 class KnowledgeTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="astra-knowledge-")
-        self.directory = Path(self.temporary.name)
+        self.directory = Path(self.temporary.name).resolve()
         self.root = self.directory / "docs"
         self.root.mkdir()
         self.database = self.directory / "index.sqlite3"

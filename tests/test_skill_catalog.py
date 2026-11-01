@@ -18,7 +18,7 @@ class SkillCatalogTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix="astra-skill-catalog-")
         self.addCleanup(temporary.cleanup)
-        self.base = Path(temporary.name)
+        self.base = Path(temporary.name).resolve()
         self.plugins, self.scopes = {}, {}
         for name in ("a", "b"):
             path = self.base / name

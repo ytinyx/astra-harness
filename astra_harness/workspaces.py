@@ -129,6 +129,10 @@ class WorkspacePolicy:
                           ("astra_harness", "tests", "scripts", "examples", "docs", ".git", ".venv", ".agents", ".codex")}
         self.check_location(self.startup)
         check_existing_ancestors(self.startup)
+        # Expand an existing Windows short-name prefix only after checking the
+        # original ancestor chain. Both spellings name the same startup exception.
+        self._startup_canonical = self.startup.resolve()
+        self.check_location(self._startup_canonical)
 
     def check_location(self, candidate):
         candidate = Path(candidate)
@@ -140,7 +144,7 @@ class WorkspacePolicy:
             raise WorkspaceError("protected_workspace")
         # An explicitly configured startup subdirectory may sit below .local;
         # an arbitrary selector may never expose the surrounding service data.
-        if candidate != self.startup and (_overlaps(candidate, self.project_root)
+        if candidate not in (self.startup, getattr(self, "_startup_canonical", self.startup)) and (_overlaps(candidate, self.project_root)
                                          or any(_overlaps(candidate, root) for root in self.data_roots)):
             raise WorkspaceError("protected_workspace")
         if any(path == candidate or path.is_relative_to(candidate) for path in self.protected_files):

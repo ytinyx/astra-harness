@@ -22,7 +22,7 @@ class CollectionTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="astra-collections-")
         self.addCleanup(self.temporary.cleanup)
-        self.base = Path(self.temporary.name)
+        self.base = Path(self.temporary.name).resolve()
         self.workspace = self.base / "workspace"
         self.workspace.mkdir()
         for name in ("product", "notes"):

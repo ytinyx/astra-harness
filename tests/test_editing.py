@@ -15,6 +15,7 @@ from astra_harness.builtin.editing import FileEditPlugin, MAX_BACKUPS, MAX_RECOR
 from astra_harness.builtin.files import FilePlugin, MAX_FILE_BYTES
 from astra_harness.contracts import ToolCall
 from astra_harness.tools import ToolExecutor, ToolRegistry, ToolExecutionUnknown, ToolUnavailable
+from tests.fixtures.windows_paths import short_path
 
 
 def sha(data):
@@ -257,6 +258,44 @@ class EditingTests(unittest.TestCase):
         for cap in (0, True, MAX_BACKUPS+1):
             with self.subTest(cap=cap), self.assertRaises(ValueError):
                 FileEditPlugin(self.files, self.history, max_backups=cap)
+        self.assertFalse(self.history.exists())
+
+    @unittest.skipUnless(os.name == "nt", "Windows filesystem short path aliases")
+    def test_short_path_history_aliases_cannot_bypass_workspace_boundary(self):
+        parent = self.base / "long history boundary fixture"
+        parent.mkdir()
+        workspace = parent / "review workspace"
+        workspace.mkdir()
+        alias = short_path(parent)
+        self.assertEqual(alias.resolve(strict=True), parent.resolve(strict=True))
+        files = FilePlugin(workspace)
+        for history in (alias / workspace.name, alias / workspace.name / "nested-history", alias):
+            with self.subTest(history=history), self.assertRaisesRegex(ValueError, "history must be outside"):
+                FileEditPlugin(files, history)
+        self.assertFalse((workspace / "nested-history").exists())
+
+        safe = parent / "review history" / "scope"
+        canonical = FileEditPlugin(files, safe)
+        aliased = FileEditPlugin(files, alias / "review history" / "scope")
+        self.assertEqual(aliased.recovery_identity, canonical.recovery_identity)
+        self.assertFalse(safe.exists())
+        (workspace / "note.txt").write_bytes(b"original")
+        result = aliased.edit("note.txt", "original", "changed", sha(b"original"))
+        self.assertTrue(result["ok"])
+        self.assertEqual((workspace / "note.txt").read_bytes(), b"changed")
+        self.assertEqual(len(list(safe.glob("*.json"))), 1)
+
+    def test_history_canonicalization_failure_rejects_without_creating_history(self):
+        resolve = Path.resolve
+
+        def checked(path, *args, **kwargs):
+            if path == self.base:
+                raise PermissionError("fixture ancestor cannot be canonicalized")
+            return resolve(path, *args, **kwargs)
+
+        with patch.object(Path, "resolve", checked):
+            with self.assertRaisesRegex(ValueError, "^history_unavailable$"):
+                FileEditPlugin(self.files, self.history)
         self.assertFalse(self.history.exists())
 
     def test_replaced_workspace_is_rejected_without_touching_new_directory(self):

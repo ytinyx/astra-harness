@@ -106,9 +106,19 @@ class FileEditPlugin:
         self._lock = threading.RLock()
         self.files.validate_workspace()
         self._history(create=False)
+        # Preserve the lexical path and anchors for later reparse/replacement
+        # checks. Only resolve an ancestor already checked as an ordinary
+        # directory; missing suffixes cannot yet have filesystem aliases.
+        anchor = max(self._anchors, key=lambda path: len(path.parts))
+        try:
+            history = anchor.resolve(strict=True).joinpath(*self.history_dir.relative_to(anchor).parts)
+        except (OSError, RuntimeError):
+            raise _Rejected("history_unavailable") from None
+        if history.is_relative_to(self.files.root) or self.files.root.is_relative_to(history):
+            raise ValueError("history must be outside the workspace")
         self.permissions = frozenset({"files.read", "files.write"})
         self.recovery_identity = _sha(json.dumps({"format": 1,
-            "workspace": self.files.workspace_identity, "history": os.path.normcase(str(self.history_dir)),
+            "workspace": self.files.workspace_identity, "history": os.path.normcase(str(history)),
             "max_backups": self.max_backups, "max_file_bytes": MAX_FILE_BYTES},
             sort_keys=True, separators=(",", ":")).encode("utf-8"))
         self.tools = self._tools()

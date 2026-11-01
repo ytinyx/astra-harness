@@ -24,7 +24,7 @@ class WorkspaceRuntimeTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix="astra-workspace-runtime-")
         self.addCleanup(temporary.cleanup)
-        self.base = Path(temporary.name)
+        self.base = Path(temporary.name).resolve()
         self.database = self.base / "runs.sqlite3"
         self.a, self.b = self.base / "A", self.base / "B"
         self.a.mkdir()

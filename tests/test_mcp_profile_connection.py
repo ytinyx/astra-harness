@@ -23,7 +23,7 @@ FIXTURE = Path(__file__).parent / "fixtures/mcp_service_server.py"
 class MCPProfileConnectionTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="astra-mcp-profiles-")
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.python = str(Path(sys.executable).resolve())
         self.connections = []
 

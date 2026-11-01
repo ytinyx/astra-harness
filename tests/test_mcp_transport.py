@@ -49,7 +49,7 @@ def alive(pid):
 class MCPTransportTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix='astra-mcp-test-')
-        self.root = Path(self.temporary.name)
+        self.root = Path(self.temporary.name).resolve()
         self.clients = []
 
     async def asyncTearDown(self):

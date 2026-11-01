@@ -21,7 +21,7 @@ from astra_harness.contracts import ToolCall
 class CommandTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="astra-commands-")
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.python = str(Path(sys.executable).resolve())
         self.plugins = []
 

@@ -153,6 +153,13 @@ class FilePlugin:
     def workspace_identity(self):
         return self._workspace_identity
 
+    def matches_workspace(self, path) -> bool:
+        """Match safe aliases by directory identity, never by resolve alone."""
+        self.validate_workspace()
+        observed = inspect_workspace_directory(path)
+        return (observed["identity"] == self._workspace_identity
+                and os.path.normcase(observed["path"]) == os.path.normcase(str(self.root)))
+
     def validate_workspace(self) -> None:
         try:
             observed = inspect_workspace_directory(self._lexical_root)

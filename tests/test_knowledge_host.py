@@ -17,7 +17,7 @@ class KnowledgeHostTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.workspace = self.root / "materials"
         for name, content in (("alpha", "alpha-only phrase"), ("beta", "beta-only phrase")):
             directory = self.workspace / name

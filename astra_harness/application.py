@@ -122,9 +122,21 @@ class Application:
             return None
         plugin = owners[0]
         root = getattr(plugin, "root", None)
-        if root is None or os.path.normcase(os.path.abspath(root)) != os.path.normcase(os.path.abspath(workspace)):
+        if root is None or not Application._file_workspace_matches(plugin, workspace):
             return None
         return plugin if callable(getattr(plugin, "validate_workspace", None)) else None
+
+    @staticmethod
+    def _file_workspace_matches(plugin, workspace):
+        matcher = getattr(plugin, "matches_workspace", None)
+        try:
+            if callable(matcher):
+                return matcher(workspace) is True
+            # Compatibility for host adapters with the original exact-path contract.
+            root = getattr(plugin, "root", None)
+            return root is not None and os.path.normcase(os.path.abspath(root)) == os.path.normcase(os.path.abspath(workspace))
+        except (OSError, ValueError, TypeError, RuntimeError):
+            return False
 
     def _make_execution(self, spec, *, factory=None, configuration=None):
         spec = Store.workspace_spec(spec)
@@ -158,7 +170,7 @@ class Application:
             validator()
             if binding.file_plugin is not None and (
                     getattr(binding.file_plugin, "workspace_identity", None) != binding.identity
-                    or os.path.normcase(os.path.abspath(binding.file_plugin.root)) != os.path.normcase(binding.path)):
+                    or not Application._file_workspace_matches(binding.file_plugin, binding.path)):
                 raise WorkspaceError("workspace_changed")
         except WorkspaceError:
             raise
