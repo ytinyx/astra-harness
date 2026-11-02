@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import os
 from pathlib import Path
 import re
 import secrets
@@ -896,6 +897,11 @@ class LocalServer:
     def __init__(self, application, host, port, *, knowledge=None, workspaces=None, mcp_profiles=None, skills=None):
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
+            # POSIX may retain closed connections in TIME_WAIT after a clean
+            # shutdown. Rebind that address without enabling port sharing;
+            # Windows has different reuse semantics and keeps its default.
+            if os.name == "posix":
+                self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._socket.bind((host, port))
             self._socket.listen(128)
             self._socket.setblocking(False)

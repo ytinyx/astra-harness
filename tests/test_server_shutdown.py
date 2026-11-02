@@ -16,7 +16,7 @@ from unittest.mock import Mock
 
 import httpx
 
-from astra_harness.web import ServerControl, _stream, create_app
+from astra_harness.web import ServerControl, _stream, create_app, create_server
 
 
 class Probe:
@@ -161,6 +161,12 @@ class ShutdownAPITests(unittest.IsolatedAsyncioTestCase):
 
 
 class ShutdownProcessTests(unittest.TestCase):
+    def test_live_listener_still_rejects_second_server(self):
+        server = create_server(Probe(), port=0)
+        self.addCleanup(server.server_close)
+        with self.assertRaises(OSError):
+            create_server(Probe(), port=server.server_port)
+
     def test_real_cli_exits_releases_port_and_restores_pending_approval(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -179,12 +185,12 @@ class ShutdownProcessTests(unittest.TestCase):
 
             def start():
                 process = subprocess.Popen(command, cwd=Path(__file__).resolve().parents[1],
-                                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 self.addCleanup(cleanup, process)
                 deadline = time.monotonic() + 10
                 while time.monotonic() < deadline:
                     if process.poll() is not None:
-                        self.fail(process.stderr.read().decode("utf-8", errors="replace"))
+                        self.fail(process.stdout.read().decode("utf-8", errors="replace"))
                     try:
                         return process, request("/api/server")
                     except OSError:
@@ -195,12 +201,12 @@ class ShutdownProcessTests(unittest.TestCase):
                 if process.poll() is None:
                     process.terminate()
                     process.wait(timeout=5)
-                process.stderr.close()
+                process.stdout.close()
 
             def stop(process, status):
                 self.assertEqual(request("/api/server/shutdown", {
                     "instance_id": status["instance_id"], "confirmed": True})["state"], "stopping")
-                self.assertEqual(process.wait(timeout=8), 0, process.stderr.read().decode("utf-8", errors="replace"))
+                self.assertEqual(process.wait(timeout=8), 0, process.stdout.read().decode("utf-8", errors="replace"))
                 with socket.socket() as sock:
                     sock.settimeout(1)
                     self.assertNotEqual(sock.connect_ex(("127.0.0.1", port)), 0)
