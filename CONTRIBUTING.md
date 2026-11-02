@@ -2,7 +2,7 @@
 
 [项目首页](README.md) · [文档地图](docs/README.md) · [验证状态](HANDOFF.md)
 
-面向准备修改 0.4.0 源码、示例或文档的开发者。第一次使用先完成 [新手入门](docs/GETTING_STARTED.md)，理解执行主线后再看 [源码导读](docs/WALKTHROUGH.md) 和 [扩展契约](docs/EXTENDING.md)。
+面向准备修改 0.5.0 源码、示例或文档的开发者。第一次使用先完成 [新手入门](docs/GETTING_STARTED.md)，理解执行主线后再看 [源码导读](docs/WALKTHROUGH.md) 和 [扩展契约](docs/EXTENDING.md)。
 
 ## 首次编码准备
 

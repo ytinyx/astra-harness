@@ -6,13 +6,14 @@
 
 | 软件版本 | Git 标签 | 分发方式 |
 | --- | --- | --- |
+| `0.5.0` | [`v0.5.0`](https://github.com/ytinyx/astra-harness/releases/tag/v0.5.0) | 当前版本：网页密钥、知识库创建与上传、退出服务 |
 | `0.4.0` | [`v0.4.0`](https://github.com/ytinyx/astra-harness/releases/tag/v0.4.0) | 首个公开版本，提供 GitHub 源码归档 |
 
-[pyproject.toml](../pyproject.toml)、[uv.lock](../uv.lock)、打包脚本和工作台显示统一使用 `0.4.0`。标签前缀 `v` 只是 Git 命名习惯，`v0.4.0` 与包版本 `0.4.0` 指向同一发行。
+[pyproject.toml](../pyproject.toml)、[uv.lock](../uv.lock)、打包脚本和工作台显示统一使用 `0.5.0`。标签前缀 `v` 只是 Git 命名习惯，`v0.5.0` 与包版本 `0.5.0` 指向同一发行。
 
 ## 应该下载哪一份
 
-- **希望稳定复现：** 从 [Release 页面](https://github.com/ytinyx/astra-harness/releases/tag/v0.4.0) 下载 Source code，或检出 `v0.4.0`。
+- **希望稳定复现：** 从 [Release 页面](https://github.com/ytinyx/astra-harness/releases/tag/v0.5.0) 下载 Source code，或检出 `v0.5.0`。
 - **希望参与开发：** 使用 `main` 分支，记录实际提交 SHA；它可能包含下一个版本的修改。
 - **需要 Python 安装包：** 按 [打包指南](PACKAGING.md) 从选定源码构建。GitHub 自动源码归档不等于 wheel 或 Python sdist；本项目尚未在 PyPI 分发。
 

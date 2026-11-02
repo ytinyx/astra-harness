@@ -249,18 +249,43 @@ class MCPProfiles:
             self._errors.pop(identifier, None)
         return self.list()
 
-    def _compose(self, active):
-        tools = self.base_tools + tuple(tool for identifier in sorted(active) for tool in active[identifier].tools)
+    def _compose(self, active, *, base_tools=None, base_permissions=None):
+        tools = (self.base_tools if base_tools is None else base_tools) + tuple(tool for identifier in sorted(active) for tool in active[identifier].tools)
         if sum(tool.name.startswith("mcp.") for tool in tools) > MAX_TOOLS:
             raise MCPProfileError("mcp_profile_limit")
         # Reuse the same registration and validation entry as every host tool.
         registry = ToolRegistry(tools)
         registry.freeze()
-        permissions = tuple(sorted(set(self.base_permissions) | {
+        permissions = tuple(sorted(set(self.base_permissions if base_permissions is None else base_permissions) | {
             permission for connection in active.values() for tool in connection.tools for permission in tool.permissions}))
         factory = self._factory_builder(tools, permissions) if self._factory_builder is not None else None
         return {"tools": tools, "permissions": permissions, "workspace_factory": factory,
                 "service_status": self._service_status or self.status}
+
+    def extend_base(self, token, tools, permissions, commit):
+        """Add host tools while retaining active MCP connections and rollback.
+
+        The caller owns the Application reservation. Persist before releasing
+        it, so neither a task nor a later MCP change can lose the new tools.
+        """
+        with self._commit_lock:
+            with self._lock:
+                self._mutable()
+                active = dict(self._active)
+                candidate_tools = self.base_tools + tuple(tools)
+                candidate_permissions = tuple(sorted(set(self.base_permissions) | set(permissions)))
+            # info() can hold the Application lock while reading MCP status.
+            # Never acquire that lock while retaining the status lock here.
+            old = self._compose(active)
+            updated = self._compose(active, base_tools=candidate_tools, base_permissions=candidate_permissions)
+            self.app.publish_tool_update(token, **updated)
+            try:
+                commit()
+            except BaseException:
+                self.app.publish_tool_update(token, **old)
+                raise
+            with self._lock:
+                self.base_tools, self.base_permissions = candidate_tools, candidate_permissions
 
     def _publish(self, token, active):
         self.app.publish_tool_update(token, **self._compose(active))

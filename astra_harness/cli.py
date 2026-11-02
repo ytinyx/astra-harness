@@ -33,6 +33,7 @@ def build_application(args, resources, *, autostart=True, web_services=None):
     from .skill_catalog import SkillCatalog
     from .builtin.local_skills import LocalSkillLoader
     from .workspace_binding import WorkspaceError
+    from .knowledge_library import KnowledgeLibrary, library_directory
 
     # 完整验证主机配置后才允许创建目录、复制样例或启动进程。
     runtime = load_runtime_config(getattr(args, "config", None))
@@ -58,8 +59,13 @@ def build_application(args, resources, *, autostart=True, web_services=None):
     # Reserve vector sidecars even when their optional adapter is disabled.
     index_paths += [Path(str(path) + ".vectors.sqlite3") for path in list(index_paths)]
     history_root = Path(args.database).absolute().parent / "file-history"
+    managed_knowledge = (not args.no_files and index_path is None and collections is None)
+    library_root = library_directory(args.database)
+    if managed_knowledge:
+        # Reserve the whole host-owned directory, including future indexes.
+        knowledge_index_path(library_root / "collections.json", workspace=workspace, database=args.database)
     workspace_policy = WorkspacePolicy(workspace, database=args.database, index_paths=index_paths,
-        protected_directories=[history_root] if not args.no_files else (),
+        protected_directories=[history_root, library_root] if not args.no_files else (),
         config_paths=[getattr(args, name, None) for name in ("config", "mcp_config", "env_file", "knowledge_config")],
         enabled=not args.no_files)
     environment = load_model_environment(getattr(args, "env_file", None))
@@ -75,6 +81,7 @@ def build_application(args, resources, *, autostart=True, web_services=None):
     permissions = []
     services = None
     file_plugin = None
+    knowledge = None
     command_plugins = []
 
     def close_commands():
@@ -118,6 +125,12 @@ def build_application(args, resources, *, autostart=True, web_services=None):
             collection.index_path.parent.mkdir(parents=True, exist_ok=True)
         knowledge = KnowledgeCollectionManager(collections, config_path=collection_config,
                                                workspace=workspace, database=args.database)
+        plugins.activate(knowledge)
+        permissions.extend(sorted(set(knowledge.permissions) - set(permissions)))
+        if web_services is not None:
+            web_services["knowledge"] = knowledge
+    elif managed_knowledge:
+        knowledge = KnowledgeLibrary(workspace, args.database)
         plugins.activate(knowledge)
         permissions.extend(sorted(set(knowledge.permissions) - set(permissions)))
         if web_services is not None:
@@ -177,6 +190,8 @@ def build_application(args, resources, *, autostart=True, web_services=None):
                            service_status=service_status,
                            reserved_names=tuple(item.name for item in mcp_configs or ()))
     dynamic_services.append(profiles)
+    if isinstance(knowledge, KnowledgeLibrary):
+        knowledge.bind(app, profiles)
     # LIFO: close profile candidates/connections before Application and Store.
     resources.callback(profiles.close)
     if web_services is not None:

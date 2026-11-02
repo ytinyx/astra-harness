@@ -95,18 +95,37 @@ class Store:
                 raise ValueError("invalid_host_setting")
             return self._setting_text(row[1])
 
-    def compare_and_swap_host_setting(self, key, expected, value):
-        """Atomically replace the exact prior text, or create an absent value."""
+    def compare_and_swap_host_setting(self, key, expected, value, *, updates=None):
+        """CAS one value and commit dependent opaque settings in one transaction.
+
+        A catalog revision and its protected credential must never be committed
+        separately. None in updates deletes a setting; a failed CAS writes none.
+        """
         self._setting_key(key)
         value = self._setting_text(value)
         if expected is not None:
             self._setting_text(expected)
+        updates = dict(updates or {})
+        for other, text in updates.items():
+            self._setting_key(other)
+            if other == key:
+                raise ValueError("invalid_host_setting")
+            if text is not None:
+                self._setting_text(text)
         with self._lock, self.db:
             if expected is None:
                 cursor = self.db.execute("INSERT OR IGNORE INTO host_settings(key,value) VALUES(?,?)", (key, value))
             else:
                 cursor = self.db.execute("UPDATE host_settings SET value=? WHERE key=? AND value=?", (value, key, expected))
-            return cursor.rowcount == 1
+            if cursor.rowcount != 1:
+                return False
+            for other, text in updates.items():
+                if text is None:
+                    self.db.execute("DELETE FROM host_settings WHERE key=?", (other,))
+                else:
+                    self.db.execute("INSERT INTO host_settings(key,value) VALUES(?,?) "
+                                    "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (other, text))
+            return True
 
     @staticmethod
     def workspace_spec(spec):

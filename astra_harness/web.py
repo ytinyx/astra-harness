@@ -15,6 +15,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from starlette.concurrency import run_in_threadpool
+from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse, Response, StreamingResponse
 import uvicorn
@@ -27,6 +28,7 @@ from .application import RuntimeUpdateError
 from .skill_catalog import SkillCatalogError
 from .task_context import TaskContextError
 from .builtin.local_skills import SkillLoadError
+from .knowledge_library import KnowledgeLibraryError, upload_material
 
 
 MAX_BODY = 64 * 1024
@@ -39,6 +41,7 @@ STATIC_FILES = {"styles.css": "text/css", "app.mjs": "text/javascript",
 STATIC_FILES.update({"model-profiles.mjs": "text/javascript", "model-profiles-state.mjs": "text/javascript"})
 STATIC_FILES.update({"mcp-profiles.mjs": "text/javascript", "mcp-profiles-state.mjs": "text/javascript"})
 STATIC_FILES.update({"local-skills.mjs": "text/javascript", "local-skills-state.mjs": "text/javascript"})
+STATIC_FILES.update({"server-control.mjs": "text/javascript"})
 _POLICY = "default-src 'none'; base-uri 'none'; frame-ancestors 'none'"
 _HEADERS = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
             "Referrer-Policy": "no-referrer", "X-Frame-Options": "DENY",
@@ -47,6 +50,34 @@ _HEADERS = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
 
 class StrictBody(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid")
+
+
+class ShutdownBody(StrictBody):
+    instance_id: str = Field(pattern=r"^[0-9a-f]{32}$")
+    confirmed: bool
+
+    @field_validator("confirmed")
+    @classmethod
+    def require_confirmation(cls, value):
+        if value is not True:
+            raise ValueError("explicit shutdown confirmation required")
+        return value
+
+
+class ServerControl:
+    """HTTP admission and shutdown intent; the CLI still owns resource cleanup.
+
+    State is accessed only on the ASGI event loop. Freeze admission before the
+    threaded run inspection, so a concurrent submit cannot pass the idle check.
+    """
+    def __init__(self, request_exit):
+        self.request_exit = request_exit
+        self.instance_id = secrets.token_hex(16)
+        self.state = "running"
+        self.active_writes = 0
+
+    def snapshot(self):
+        return {"supported": True, "instance_id": self.instance_id, "state": self.state}
 
 
 class SkillSelectionBody(StrictBody):
@@ -144,6 +175,20 @@ class KnowledgeOperationBody(StrictBody):
 class EmbeddingConfigurationBody(StrictBody):
     embedding: dict[str, Any]
     expected_revision: str = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
+
+
+class KnowledgeCreateBody(StrictBody):
+    id: str = Field(pattern=r"^kb_[a-f0-9]{24}$")
+    label: str = Field(min_length=1, max_length=64)
+    expected_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    workspace_id: str = Field(pattern=f"^{ID}$")
+
+
+class KnowledgeUploadBody(StrictBody):
+    filename: str = Field(min_length=1, max_length=120)
+    content_base64: str = Field(min_length=1, max_length=170668)
+    expected_identity: str = Field(pattern=r"^[0-9a-f]{64}$")
+    workspace_id: str = Field(pattern=f"^{ID}$")
 
 
 class ModelProfileSaveBody(StrictBody):
@@ -250,8 +295,9 @@ def _no_query(request):
 
 class LocalProtocol:
     """Validate raw headers and bounded JSON before FastAPI dispatches a write."""
-    def __init__(self, app, *, port):
+    def __init__(self, app, *, port, server_control=None):
         self.app, self.port = app, port
+        self.server_control = server_control
 
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
@@ -271,6 +317,21 @@ class LocalProtocol:
 
         def values(name):
             return [value.decode("latin-1") for key, value in scope["headers"] if key.lower() == name]
+
+        async def dispatch(reader):
+            control = self.server_control
+            server_path = scope["path"] in {"/api/server", "/api/server/shutdown"}
+            if control and control.state != "running" and scope["path"].startswith("/api/") and not server_path:
+                await reject(503, "server_stopping")
+                return
+            write = control and scope["method"] in {"POST", "PUT", "DELETE", "PATCH"} and not server_path
+            if write:
+                control.active_writes += 1
+            try:
+                await self.app(scope, reader, safe_send)
+            finally:
+                if write:
+                    control.active_writes -= 1
 
         hosts = values(b"host")
         if len(hosts) != 1 or hosts[0] not in {f"127.0.0.1:{self.port}", f"localhost:{self.port}"}:
@@ -295,7 +356,8 @@ class LocalProtocol:
                 await reject(400, "invalid_request")
                 return
             normalized = lengths[0].lstrip("0") or "0"
-            if len(normalized) > 5 or not 0 < int(normalized) <= MAX_BODY:
+            body_limit = 180_000 if re.fullmatch(r"/api/knowledge/[a-z][a-z0-9_-]{0,31}/files", scope["path"]) else MAX_BODY
+            if len(normalized) > 6 or not 0 < int(normalized) <= body_limit:
                 await reject(413, "body_too_large")
                 return
             expected, chunks, size = int(normalized), [], 0
@@ -306,7 +368,7 @@ class LocalProtocol:
                         return
                     chunk = message.get("body", b"")
                     size += len(chunk)
-                    if size > MAX_BODY or size > expected:
+                    if size > body_limit or size > expected:
                         raise ValueError("body length mismatch")
                     chunks.append(chunk)
                     if not message.get("more_body", False):
@@ -329,14 +391,16 @@ class LocalProtocol:
                     return {"type": "http.request", "body": data, "more_body": False}
                 return await receive()
 
-            await self.app(scope, replay, safe_send)
+            await dispatch(replay)
         else:
-            await self.app(scope, receive, safe_send)
+            await dispatch(receive)
 
 
-async def _stream(application, run_id, after):
+async def _stream(application, run_id, after, server_control=None):
     deadline, previous = time.monotonic() + 25, None
     while time.monotonic() < deadline:
+        if server_control and server_control.state == "stopping":
+            return
         # Observe state first, then drain every event page before its snapshot.
         run = await run_in_threadpool(application.get_run, run_id)
         while True:
@@ -368,11 +432,11 @@ async def _stream(application, run_id, after):
         await asyncio.sleep(0.25)
 
 
-def create_app(application, port, *, knowledge=None, workspaces=None, mcp_profiles=None, skills=None):
+def create_app(application, port, *, knowledge=None, workspaces=None, mcp_profiles=None, skills=None, server_control=None):
     if type(port) is not int or not 1 <= port <= 65535:
         raise ValueError("invalid bound port")
     api = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, redirect_slashes=False)
-    api.add_middleware(LocalProtocol, port=port)
+    api.add_middleware(LocalProtocol, port=port, server_control=server_control)
 
     def selected_workspace(identifier=None):
         if workspaces is not None and identifier is not None:
@@ -427,7 +491,7 @@ def create_app(application, port, *, knowledge=None, workspaces=None, mcp_profil
 
     async def error(request, exception):
         if isinstance(exception, (WorkspaceError, ModelProfileError, MCPProfileError, RuntimeUpdateError,
-                                  SkillCatalogError, TaskContextError)):
+                                  SkillCatalogError, TaskContextError, KnowledgeLibraryError)):
             status, code = exception.status, exception.code
         elif isinstance(exception, SkillLoadError):
             status, code = 409, exception.code
@@ -466,6 +530,36 @@ def create_app(application, port, *, knowledge=None, workspaces=None, mcp_profil
         _no_query(request)
         return _json(200, application.info())
 
+    @api.get("/api/server")
+    async def server_status(request: Request):
+        _no_query(request)
+        return _json(200, server_control.snapshot() if server_control else {"supported": False})
+
+    @api.post("/api/server/shutdown")
+    async def shutdown(body: ShutdownBody):
+        if server_control is None:
+            return _json(503, {"error": "server_shutdown_unavailable"})
+        if body.instance_id != server_control.instance_id:
+            return _json(409, {"error": "server_changed"})
+        if server_control.state == "stopping":
+            return _json(202, server_control.snapshot())
+        if server_control.state != "running" or server_control.active_writes:
+            return _json(409, {"error": "server_busy"})
+        server_control.state = "checking"
+        try:
+            runs = await run_in_threadpool(application.list_runs)
+            if any(run["status"] in {"pending", "running"} for run in runs):
+                return _json(409, {"error": "server_busy"})
+            server_control.state = "stopping"
+        finally:
+            if server_control.state == "checking":
+                server_control.state = "running"
+        response = _json(202, server_control.snapshot())
+        # Send the acknowledgement before asking Uvicorn to stop. serve() then
+        # returns to the existing ExitStack: MCP, Application, and owned tools.
+        response.background = BackgroundTask(server_control.request_exit)
+        return response
+
     @api.get("/api/model-profiles")
     def model_profiles(request: Request):
         _no_query(request)
@@ -482,6 +576,10 @@ def create_app(application, port, *, knowledge=None, workspaces=None, mcp_profil
     @api.post("/api/model-profiles/delete")
     def delete_model_profile(body: ModelProfileItemBody):
         return _json(200, application.delete_model_profile(body.id, body.expected_revision))
+
+    @api.post("/api/model-profiles/delete-key")
+    def delete_model_profile_key(body: ModelProfileItemBody):
+        return _json(200, application.delete_model_profile_key(body.id, body.expected_revision))
 
     @api.post("/api/model-profiles/test")
     async def test_model_profile(body: ModelProfileTestBody, request: Request):
@@ -615,6 +713,8 @@ def create_app(application, port, *, knowledge=None, workspaces=None, mcp_profil
         selected_workspace(query.get("workspace_id"))
         if knowledge is not None and not knowledge_enabled():
             return _json(200, {"enabled": False, "collections": [], "reason": "workspace_not_configured"})
+        if knowledge is None:
+            return _json(200, {"enabled": False, "collections": []})
         descriptors = []
         for item in knowledge.collections() if knowledge is not None else ():
             tool = application.engine.registry.get(item["tools"]["search"])
@@ -631,7 +731,31 @@ def create_app(application, port, *, knowledge=None, workspaces=None, mcp_profil
             descriptors.append({**item, "recovery_identity": tool.recovery_identity,
                                 "tool_recovery_identities": identities})
         return _json(200, {"enabled": knowledge is not None,
-                           "collections": descriptors})
+                           "collections": descriptors,
+                           "workspace_id": application.selected_workspace_id,
+                           "management": knowledge.management() if callable(getattr(knowledge, "management", None))
+                           else {"can_create": False}})
+
+    @api.post("/api/knowledge/collections")
+    def create_knowledge_collection(body: KnowledgeCreateBody):
+        selected_workspace(body.workspace_id)
+        if not knowledge_enabled() or not callable(getattr(knowledge, "create", None)):
+            raise WorkspaceError("workspace_not_configured")
+        return _json(201, knowledge.create(**body.model_dump()))
+
+    @api.post("/api/knowledge/{collection_id}/files")
+    def upload_knowledge_material(collection_id: str, body: KnowledgeUploadBody):
+        selected_workspace(body.workspace_id)
+        item = knowledge_control(collection_id, write=True)
+        if "files.write" not in application.permissions:
+            raise PermissionError("permission_denied")
+        tool = application.engine.registry.get(item["tools"]["search"])
+        if tool.recovery_identity != body.expected_identity:
+            raise KnowledgeLibraryError("knowledge_conflict")
+        plugin = knowledge.get(collection_id)
+        if plugin is None:
+            raise KnowledgeLibraryError("knowledge_unavailable")
+        return _json(201, upload_material(plugin, body.filename, body.content_base64))
 
     @api.get("/api/knowledge/{collection_id}")
     def knowledge_catalog(collection_id: str, request: Request):
@@ -725,7 +849,7 @@ def create_app(application, port, *, knowledge=None, workspaces=None, mcp_profil
         if not re.fullmatch(r"[0-9]{1,18}", cursor):
             raise ValueError("invalid cursor")
         await run_in_threadpool(application.get_run, identifier)
-        return StreamingResponse(_stream(application, identifier, int(cursor)), media_type="text/event-stream", headers=_HEADERS)
+        return StreamingResponse(_stream(application, identifier, int(cursor), server_control), media_type="text/event-stream", headers=_HEADERS)
 
     @api.post("/api/runs")
     def submit(body: RunBody):
@@ -777,8 +901,9 @@ class LocalServer:
             self._socket.setblocking(False)
             self.server_address = self._socket.getsockname()
             self.server_port = self.server_address[1]
+            self.control = ServerControl(self.request_exit)
             config = uvicorn.Config(create_app(application, self.server_port, knowledge=knowledge, workspaces=workspaces,
-                                               mcp_profiles=mcp_profiles, skills=skills), host=host, port=self.server_port,
+                                               mcp_profiles=mcp_profiles, skills=skills, server_control=self.control), host=host, port=self.server_port,
                                     http="h11", loop="asyncio", lifespan="off", workers=1, reload=False,
                                     proxy_headers=False, access_log=False, ws="none", log_config=None,
                                     log_level="critical", server_header=False, date_header=False,
@@ -799,9 +924,12 @@ class LocalServer:
             self._stopped.set()
 
     def shutdown(self):
-        self._server.should_exit = True
+        self.request_exit()
         if self._running and not self._stopped.wait(timeout=5):
             raise RuntimeError("HTTP server did not stop")
+
+    def request_exit(self):
+        self._server.should_exit = True
 
     def server_close(self):
         self.shutdown()

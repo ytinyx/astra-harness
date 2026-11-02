@@ -25,7 +25,7 @@ jobs:
       - name: Python regression
         run: python -X utf8 -m unittest discover -s tests -v
       - name: JavaScript regression
-        run: node --test tests/frontend/coretools.test.mjs tests/frontend/knowledge.test.mjs tests/frontend/local-skills.test.mjs tests/frontend/markdown.test.mjs tests/frontend/mcp-profiles.test.mjs tests/frontend/model-profiles.test.mjs tests/frontend/state.test.mjs tests/frontend/workspace.test.mjs
+        run: node --test tests/frontend/coretools.test.mjs tests/frontend/knowledge.test.mjs tests/frontend/local-skills.test.mjs tests/frontend/markdown.test.mjs tests/frontend/mcp-profiles.test.mjs tests/frontend/model-profiles.test.mjs tests/frontend/server-control.test.mjs tests/frontend/state.test.mjs tests/frontend/workspace.test.mjs
       - name: Acceptance and benchmark
         run: |
           python -X utf8 -m astra_harness eval

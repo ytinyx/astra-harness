@@ -2,7 +2,7 @@ import {ModelProfilesSession, modelProfileError} from './model-profiles-state.mj
 
 export function createModelProfilesView({api, accepted, changed = () => {}, blocked = () => false}) {
   const $ = id => document.getElementById(id), dialog = $('model-profiles-dialog');
-  let deleteId = null, renderedCatalog, renderedListFlags, consentBinding = null, visibleFeedback = null;
+  let deleteId = null, deleteKeyId = null, renderedCatalog, renderedListFlags, consentBinding = null, visibleFeedback = null;
   const session = new ModelProfilesSession({api, accepted, blocked, changed: () => {render(); changed();}});
   function node(tag, text, className) {
     const element = document.createElement(tag); if (text !== undefined) element.textContent = text;
@@ -19,11 +19,13 @@ export function createModelProfilesView({api, accepted, changed = () => {}, bloc
     $('profiles-current-note').textContent = '保存和选择不发送请求。选择只影响新任务；已有运行保持原模型，同一对话不能悄悄改用另一模型。';
     $('profiles-error').textContent = s.error; $('profiles-error').hidden = !s.error;
     $('profiles-notice').textContent = s.notice; $('profiles-notice').hidden = !s.notice;
-    $('profiles-dirty').textContent = s.dirty ? '有未保存修改 · 关闭面板保留草稿，不会自动保存' : '配置只保存环境变量名，密钥留在后端';
+    $('profiles-dirty').textContent = s.dirty ? '有未保存修改 · 关闭面板保留其他草稿，并清空未保存的 API Key' : 'API Key 保存后无需重启，已保存密钥不会回显';
     $('profiles-reload').disabled = !!s.busy || s.testing;
     $('profiles-new').disabled = locked || s.testing || s.dirty;
     const listFlags = `${locked}:${s.testing}:${s.dirty}`;
     if (renderedCatalog !== s.catalog || renderedListFlags !== listFlags) {
+    // A confirmation must not survive a reload that may have replaced the key.
+    if (renderedCatalog !== s.catalog) {deleteId = null; deleteKeyId = null;}
     renderedCatalog = s.catalog; renderedListFlags = listFlags;
     const list = $('profiles-list'); list.replaceChildren();
     const startup = node('article', undefined, 'model-profile-card' + (s.catalog?.selected_id === null ? ' selected' : ''));
@@ -33,13 +35,13 @@ export function createModelProfilesView({api, accepted, changed = () => {}, bloc
     for (const item of s.catalog?.items || []) {
       const card = node('article', undefined, 'model-profile-card' + (item.id === s.catalog.selected_id ? ' selected' : ''));
       const actions = node('div', undefined, 'model-profile-actions');
-      actions.append(button('编辑', () => {deleteId = null; session.begin(item.id); $('profile-name').focus();}, locked || s.testing || s.dirty),
+      actions.append(button('编辑', () => {deleteId = null; deleteKeyId = null; session.begin(item.id); $('profile-name').focus();}, locked || s.testing || s.dirty),
         button(item.id === s.catalog.selected_id ? '当前选择' : '选择此配置', () => session.select(item.id), locked || s.testing || s.dirty || item.id === s.catalog.selected_id));
       card.append(node('strong', item.name), node('span', item.model, 'model-profile-model'), node('code', item.base_url), actions); list.append(card);
     }
     }
     $('profiles-empty').hidden = !s.catalog || s.catalog.items.length > 0;
-    for (const field of ['name', 'base_url', 'model', 'key_env', 'timeout', 'max_output_tokens']) {
+    for (const field of ['name', 'base_url', 'model', 'key_env', 'api_key', 'timeout', 'max_output_tokens']) {
       const control = $('profile-' + field);
       const value = String(draft[field] ?? ''); if (control.value !== value) control.value = value;
       control.disabled = locked || s.testing;
@@ -54,6 +56,27 @@ export function createModelProfilesView({api, accepted, changed = () => {}, bloc
     $('profile-delete-confirm').disabled = locked || s.testing;
     $('profile-delete-cancel').disabled = !!s.busy;
     const saved = s.catalog?.items.find(item => item.id === draft.id);
+    const stored = draft.key_env === null, hasKey = saved?.has_api_key === true;
+    $('profile-key-source').value = stored ? 'stored' : 'environment';
+    $('profile-key-source').disabled = locked || s.testing;
+    $('profile-key-source-stored').disabled = s.catalog?.can_store_api_key === false;
+    $('profile-key-stored').hidden = !stored;
+    $('profile-key-environment').hidden = stored;
+    $('profile-key_env').disabled = locked || s.testing || stored;
+    $('profile-key_env').required = !stored;
+    $('profile-api_key').disabled = locked || s.testing || !stored;
+    $('profile-api_key').required = stored && !hasKey;
+    $('profile-api_key').placeholder = hasKey ? '已保存；留空保留，输入新 Key 后保存可替换' : '粘贴服务商提供的 API Key';
+    $('profile-key-status').textContent = hasKey
+      ? '已保存密钥 · 留空保留，填写新 Key 后保存即可替换。不会回显已保存的密钥。'
+      : '尚未保存密钥 · 在本机加密保存，保存后无需重启。已保存密钥不会回显。';
+    $('profile-key-env-note').textContent = hasKey ? '切换到环境变量并保存会删除本机保存的密钥。这里只填变量名，实际密钥由启动服务的终端提供。'
+      : (s.catalog?.can_store_api_key === false ? '当前系统暂不支持网页保存密钥。' : '') + '只填变量名，例如 ASTRA_MODEL_DEEPSEEK_API_KEY；实际密钥由启动服务的终端提供。';
+    $('profile-delete-key').hidden = !stored || !hasKey;
+    $('profile-delete-key').disabled = locked || s.testing || s.dirty;
+    $('profile-delete-key-confirmation').hidden = deleteKeyId !== draft.id || !deleteKeyId;
+    $('profile-delete-key-confirm').disabled = locked || s.testing || s.dirty;
+    $('profile-delete-key-cancel').disabled = !!s.busy;
     // Consent is for the displayed destination and revision, not a reusable
     // approval for whichever profile happens to be edited next.
     const binding = saved ? `${saved.id}:${saved.identity}:${saved.revision}:${s.catalog.revision}` : null;
@@ -93,24 +116,31 @@ export function createModelProfilesView({api, accepted, changed = () => {}, bloc
       visibleFeedback = feedback[0]; feedback[1].scrollIntoView({block: 'nearest', inline: 'nearest'});
     }
   }
-  function close() {dialog.close(); visibleFeedback = null; session.cancelTest();}
+  function close() {dialog.close(); visibleFeedback = null; deleteId = null; deleteKeyId = null; session.clearSecret(); session.cancelTest();}
   $('model-profiles-close').addEventListener('click', close);
   dialog.addEventListener('cancel', event => {event.preventDefault(); close();});
-  $('profiles-reload').addEventListener('click', () => session.load());
-  $('profiles-new').addEventListener('click', () => {deleteId = null; session.begin(); $('profile-name').focus();});
-  $('profile-discard').addEventListener('click', () => {deleteId = null; session.discard();});
-  $('profile-form').addEventListener('submit', event => {event.preventDefault(); $('profile-test-confirmed').checked = false; deleteId = null; session.save();});
-  for (const field of ['name', 'base_url', 'model', 'key_env', 'timeout', 'max_output_tokens']) $('profile-' + field).addEventListener('input', event => {
-    deleteId = null; $('profile-test-confirmed').checked = false;
+  $('profiles-reload').addEventListener('click', () => {deleteId = null; deleteKeyId = null; session.load();});
+  $('profiles-new').addEventListener('click', () => {deleteId = null; deleteKeyId = null; session.begin(); $('profile-name').focus();});
+  $('profile-discard').addEventListener('click', () => {deleteId = null; deleteKeyId = null; session.discard();});
+  $('profile-form').addEventListener('submit', event => {event.preventDefault(); $('profile-test-confirmed').checked = false; deleteId = null; deleteKeyId = null; session.save();});
+  for (const field of ['name', 'base_url', 'model', 'key_env', 'api_key', 'timeout', 'max_output_tokens']) $('profile-' + field).addEventListener('input', event => {
+    deleteId = null; deleteKeyId = null; $('profile-test-confirmed').checked = false;
     session.update({[field]: ['timeout', 'max_output_tokens'].includes(field) ? Number(event.target.value) : event.target.value});
   });
-  $('profile-delete').addEventListener('click', () => {deleteId = session.state.draft.id; render();});
+  $('profile-key-source').addEventListener('change', event => {
+    deleteId = null; deleteKeyId = null; $('profile-test-confirmed').checked = false;
+    session.update({key_env: event.target.value === 'stored' ? null : 'ASTRA_MODEL_API_KEY', api_key: ''});
+  });
+  $('profile-delete').addEventListener('click', () => {deleteKeyId = null; deleteId = session.state.draft.id; render(); $('profile-delete-confirmation').scrollIntoView({block: 'nearest'});});
   $('profile-delete-cancel').addEventListener('click', () => {deleteId = null; render();});
   $('profile-delete-confirm').addEventListener('click', () => {const id = deleteId; deleteId = null; if (id) session.remove(id);});
+  $('profile-delete-key').addEventListener('click', () => {deleteId = null; deleteKeyId = session.state.draft.id; render(); $('profile-delete-key-confirmation').scrollIntoView({block: 'nearest'});});
+  $('profile-delete-key-cancel').addEventListener('click', () => {deleteKeyId = null; render();});
+  $('profile-delete-key-confirm').addEventListener('click', () => {const id = deleteKeyId; deleteKeyId = null; if (id) session.removeKey(id);});
   $('profile-test-confirmed').addEventListener('change', render);
   $('profile-test').addEventListener('click', () => {const confirmed = $('profile-test-confirmed').checked; $('profile-test-confirmed').checked = false; session.test(confirmed);});
   $('profile-test-cancel').addEventListener('click', () => session.cancelTest());
-  window.addEventListener('beforeunload', () => session.cancelTest());
+  window.addEventListener('beforeunload', () => {session.clearSecret(); session.cancelTest();});
   return {load: () => session.load(), open: () => {render(); if (!dialog.open) dialog.showModal(); session.load();}, close,
     locked: () => session.locked(), refresh: render, get state() {return session.state;}};
 }

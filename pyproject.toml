@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "astra-harness"
-version = "0.4.0"
+version = "0.5.0"
 license = {file = "LICENSE"}
 description = "A local Agent workbench with bounded execution, approvals and reproducible evaluation."
 requires-python = ">=3.10"

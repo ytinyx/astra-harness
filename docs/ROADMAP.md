@@ -2,7 +2,7 @@
 
 [项目首页](../README.md) · [文档地图](README.md) · [验证状态](../HANDOFF.md)
 
-路线图区分当前已有能力、仍需验证的边界和未承诺的方向。**当前软件版本为 0.4.0**，版本变化见 [变更日志](../CHANGELOG.md)，获取固定源码与升级规则见 [版本与升级](VERSION_TIMELINE.md)。
+路线图区分当前已有能力、仍需验证的边界和未承诺的方向。**当前软件版本为 0.5.0**，版本变化见 [变更日志](../CHANGELOG.md)，获取固定源码与升级规则见 [版本与升级](VERSION_TIMELINE.md)。
 
 ## 当前交付范围
 
@@ -12,7 +12,7 @@
 | 状态与恢复 | SQLite 检查点、持久审批、暂停／继续、unknown 核查 | [完整演示](DEMO.md) | 不保证任意外部工具恰好执行一次 |
 | 工作区与基本工具 | 目录选择与绑定、浏览／搜索／片段读取、条件编辑与恢复、可选命令 | [工作区](WORKSPACES.md)、[工具](CORE_TOOLS.md) | 本地路径保护与程序白名单不是 OS 沙箱 |
 | 扩展通道 | 函数工具、模型档案、多 MCP 服务与用户配置、本地 Skill | [扩展指南](EXTENDING.md) | 可信宿主装配，已有运行保留绑定 |
-| 有来源检索 | 静态多集合、词法索引、更新移除与来源复核、可选 Embedding | [知识检索](KNOWLEDGE.md)、[Embedding](EMBEDDING.md) | MCP／知识仍绑定启动目录；真实语义质量未验证 |
+| 有来源检索 | 静态多集合、词法索引、更新移除与来源复核、可选 Embedding；网页创建与上传 | [知识检索](KNOWLEDGE.md)、[Embedding](EMBEDDING.md) | MCP／知识仍绑定启动目录；真实语义质量未验证 |
 | 观察与操作 | Web、SSE、会话、审批、配置表单、窄屏与错误恢复 | [源码导读](WALKTHROUGH.md) | 回环单用户，未实现公网认证或多租户 |
 | 验收与安装 | 确定性回归、真实子进程故障、任务级对照、工具身份比较、wheel／sdist | [评测](EVALUATION.md)、[打包](PACKAGING.md) | 离线结果与真实模型证据分开 |
 
@@ -40,7 +40,7 @@ Embedding 的本地 mock 用于检查协议、持久化与排序路径，不能�
 
 ### 分发与安装
 
-当前版本通过 [GitHub Release](https://github.com/ytinyx/astra-harness/releases/tag/v0.4.0) 提供源码归档；CI 检查 wheel 构建，尚未在 PyPI 分发。后续若提供预构建安装包或发布至包索引，应补齐对应安装验收与版本说明。
+当前版本通过 [GitHub Release](https://github.com/ytinyx/astra-harness/releases/tag/v0.5.0) 提供源码归档；CI 检查 wheel 构建，尚未在 PyPI 分发。后续若提供预构建安装包或发布至包索引，应补齐对应安装验收与版本说明。
 
 ## 后续候选，需要问题驱动
 

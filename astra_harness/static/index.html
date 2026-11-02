@@ -18,6 +18,7 @@
     <div class="sidebar-caption"><span>你的对话</span><button id="archive-toggle" class="text-button" aria-pressed="false">查看归档</button></div>
     <nav class="session-list" id="sessions" aria-label="会话列表"></nav><p class="empty-small" id="session-empty" hidden>还没有对话。<br>从一个想完成的任务开始。</p>
     <div class="sidebar-footer"><span class="local-dot"></span><div>本地工作台<small>你的文件，按你的授权处理</small></div><button class="icon-button" id="about-button" aria-label="运行配置与帮助">?</button></div>
+    <button id="exit-service" class="exit-service" type="button" aria-haspopup="dialog"><span aria-hidden="true">⏻</span>退出服务<span class="exit-service-hint">结束本次使用</span></button>
   </aside>
   <main class="workspace-main">
     <header class="topbar"><div class="top-title"><button id="sidebar-toggle" class="icon-button mobile-only" aria-label="展开会话导航" aria-controls="sidebar" aria-expanded="false">☰</button><span class="breadcrumb">工作台 <span>/</span></span><h1 id="conversation-title">新对话</h1><span id="archived-badge" class="pill" hidden>已归档</span></div><div class="top-actions"><button id="open-knowledge-top" class="knowledge-top-link" aria-label="打开知识库">▤ 知识库</button><button id="mode" class="mode-pill" title="查看运行模式"><span class="mode-dot"></span><span id="mode-label">连接中</span></button><button id="inspector-toggle" class="icon-button" aria-label="切换工作区面板" aria-expanded="true">◫</button></div></header>
@@ -32,12 +33,18 @@
       <div id="approval" class="approval-card" hidden><div class="approval-heading"><span class="approval-icon">↳</span><div><strong>执行前，请你确认</strong><p id="approval-caption">这项操作需要你的批准。</p></div></div><div id="approval-content"></div><div class="approval-actions"><button id="reject" class="secondary">拒绝此次操作</button><button id="approve" class="primary">批准并继续 →</button></div></div>
       <div id="unknown-panel" class="notice warning" hidden><strong>这次操作的结果需要核查</strong><p id="unknown-help"></p><button id="resolve" class="secondary">填写核查结论</button><p id="resolution-note"></p></div><div id="run-error" class="notice warning" hidden></div>
     </div>
-    <div class="composer-area"><div class="skill-composer"><button id="skill-picker" type="button" class="text-button">选择任务指导</button><span id="skill-selection" role="status">本次任务不附加 Skill</span><button id="skill-clear" type="button" class="text-button" hidden>清除选择</button></div><div id="error" class="error-banner" role="alert" hidden></div><div class="run-strip" id="run-strip" hidden><span class="run-indicator" id="run-indicator"></span><span id="status" role="status"></span><span id="counts"></span><div class="run-actions"><button id="pause" class="text-button" aria-label="暂停运行" hidden>暂停</button><button id="resume" class="text-button" aria-label="继续运行" hidden>继续</button><button id="cancel" class="text-button">停止运行</button></div></div><form id="composer" class="composer"><label class="sr-only" for="prompt">任务或消息</label><textarea id="prompt" rows="2" maxlength="16000" placeholder="描述你想完成的任务…" required></textarea><div class="composer-bottom"><button type="button" id="browse-files" class="workspace-button"><span>▱</span><span>工作区文件</span></button><span class="composer-hint">Enter 发送 · Shift + Enter 换行</span><button type="submit" id="send" class="send-button" aria-label="发送任务">↑</button></div></form><div class="footer-note"><span id="usage-summary">文件写入需审批 · 运行记录保存在本机</span><span>Astra Harness <span id="version">0.4.0</span></span></div></div>
+    <div class="composer-area"><div class="skill-composer"><button id="skill-picker" type="button" class="text-button">选择任务指导</button><span id="skill-selection" role="status">本次任务不附加 Skill</span><button id="skill-clear" type="button" class="text-button" hidden>清除选择</button></div><div id="error" class="error-banner" role="alert" hidden></div><div class="run-strip" id="run-strip" hidden><span class="run-indicator" id="run-indicator"></span><span id="status" role="status"></span><span id="counts"></span><div class="run-actions"><button id="pause" class="text-button" aria-label="暂停运行" hidden>暂停</button><button id="resume" class="text-button" aria-label="继续运行" hidden>继续</button><button id="cancel" class="text-button">停止运行</button></div></div><form id="composer" class="composer"><label class="sr-only" for="prompt">任务或消息</label><textarea id="prompt" rows="2" maxlength="16000" placeholder="描述你想完成的任务…" required></textarea><div class="composer-bottom"><button type="button" id="browse-files" class="workspace-button"><span>▱</span><span>工作区文件</span></button><span class="composer-hint">Enter 发送 · Shift + Enter 换行</span><button type="submit" id="send" class="send-button" aria-label="发送任务">↑</button></div></form><div class="footer-note"><span id="usage-summary">文件写入需审批 · 运行记录保存在本机</span><span>Astra Harness <span id="version">0.5.0</span></span></div></div>
   </main>
   <section id="knowledge-workspace" class="knowledge-workspace" aria-label="知识库工作区" hidden>
     <header class="knowledge-header"><div><button id="knowledge-menu" class="icon-button mobile-only" aria-label="展开会话导航" aria-controls="sidebar" aria-expanded="false">☰</button><span class="knowledge-overline">LOCAL KNOWLEDGE</span><h1>让答案有据可查。</h1><p>选择材料，确认导入，再从原文中找到线索。</p></div><button id="knowledge-back" type="button" class="secondary">← 返回对话</button></header>
     <div class="knowledge-scroll">
       <div id="knowledge-error" class="error-banner" role="alert" hidden></div><p id="knowledge-loading" class="knowledge-loading" role="status" hidden>正在读取知识库…</p>
+      <section id="knowledge-manage" class="knowledge-card knowledge-manage" hidden>
+        <div class="knowledge-card-heading"><div><span class="knowledge-overline">YOUR LIBRARY</span><h2>新建知识库</h2></div><button id="knowledge-reload" class="text-button" type="button">刷新知识库列表</button></div>
+        <p class="knowledge-subtle">起一个名字，再上传材料。目录和本地索引会自动准备好，无需填写启动参数。</p>
+        <form id="knowledge-create-form" class="knowledge-create-form"><div><label for="knowledge-name">知识库名称</label><input id="knowledge-name" maxlength="64" required placeholder="例如：产品手册、学习笔记" autocomplete="off"></div><button id="knowledge-create" class="primary" type="submit">新建并启用</button></form>
+        <p id="knowledge-create-notice" class="knowledge-subtle" role="status"></p>
+      </section>
       <section id="knowledge-unavailable" class="knowledge-card knowledge-disabled" hidden><span class="knowledge-overline">尚未启用</span><h2 id="knowledge-unavailable-title">先为工作台配置一份本地索引。</h2><p id="knowledge-unavailable-help">启动时提供 <code>--knowledge-index</code>，或通过 <code>--knowledge-config</code> 配置多个独立集合。页面不会自动读取或导入你的材料。</p><p>完整步骤见项目的 <code>docs/KNOWLEDGE.md</code>。</p></section>
       <div id="knowledge-content" hidden>
         <div class="knowledge-collection-bar"><div><label for="knowledge-collection">当前知识库</label><select id="knowledge-collection" aria-label="当前知识库"></select><p id="knowledge-scope" class="knowledge-subtle"></p></div><button id="knowledge-refresh" class="secondary" type="button">刷新资料</button></div>
@@ -66,6 +73,7 @@
         </details>
         <div class="knowledge-columns">
           <section class="knowledge-card"><div class="knowledge-card-heading"><div><span class="knowledge-overline">01 / MATERIALS</span><h2>把材料放进索引</h2></div><span id="knowledge-document-count" class="knowledge-badge">0 份已索引</span></div>
+            <form id="knowledge-upload-form" class="knowledge-upload-form"><label for="knowledge-upload-file">从电脑上传材料</label><input id="knowledge-upload-file" type="file" accept=".md,.txt,text/plain,text/markdown"><p class="knowledge-subtle">支持 UTF-8 .md / .txt，单文件不超过 128,000 字节。上传保存本地副本，随后确认导入；同名不同内容不会覆盖。</p><button id="knowledge-upload" class="secondary" type="submit" disabled>上传并查看材料</button><p id="knowledge-upload-notice" class="knowledge-subtle" role="status"></p></form>
             <label for="knowledge-file">可导入材料</label><div class="knowledge-file-picker"><select id="knowledge-file" aria-label="可导入材料"><option value="">选择一个 .md / .txt 材料</option></select><button id="knowledge-inspect" class="secondary" type="button" disabled>查看材料</button></div>
             <p id="knowledge-candidate-note" class="knowledge-subtle"></p><p id="knowledge-truncated" class="knowledge-stale-note" hidden>列表达到扫描上限，仅展示部分材料。可整理材料目录后再刷新。</p>
             <div id="knowledge-prepared" class="knowledge-prepared" hidden></div><div class="knowledge-section-label">已索引文档</div><div id="knowledge-documents"></div>
@@ -102,6 +110,13 @@
 </div>
 <button id="mobile-backdrop" class="mobile-backdrop" aria-label="关闭会话导航" hidden></button>
 <dialog id="dialog" class="dialog"><form id="dialog-form"><div class="dialog-top"><h2 id="dialog-title"></h2><button type="button" id="dialog-close" class="icon-button" aria-label="关闭对话框">×</button></div><div id="dialog-body"></div><div id="dialog-error" class="error-banner" role="alert" hidden></div><div id="dialog-actions" class="dialog-actions"><button type="button" id="dialog-cancel" class="secondary">取消</button><button id="dialog-confirm" type="submit" class="primary">确认</button></div></form></dialog><div id="toast" class="toast" role="status" hidden></div>
+<dialog id="shutdown-dialog" class="dialog shutdown-dialog" aria-labelledby="shutdown-title" aria-describedby="shutdown-description shutdown-help">
+  <span class="shutdown-symbol" aria-hidden="true">⏻</span>
+  <h2 id="shutdown-title" tabindex="-1" aria-live="polite">退出 Astra 服务？</h2>
+  <p id="shutdown-description"></p><p id="shutdown-help"></p>
+  <div id="shutdown-error" class="error-banner" role="alert" hidden></div>
+  <div class="dialog-actions"><button id="shutdown-cancel" class="secondary" type="button" autofocus>继续使用</button><button id="shutdown-check" class="secondary" type="button" hidden>检查连接</button><button id="shutdown-refresh" class="secondary" type="button" hidden>启动后刷新页面</button><button id="shutdown-confirm" class="primary shutdown-confirm" type="button">确认退出服务</button></div>
+</dialog>
 <dialog id="model-profiles-dialog" class="dialog model-profiles-dialog" aria-labelledby="model-profiles-title">
   <header class="dialog-top"><div><span class="knowledge-overline">MODEL PROFILES</span><h2 id="model-profiles-title">模型配置</h2></div><button id="model-profiles-close" class="icon-button" type="button" aria-label="关闭模型配置">×</button></header>
   <section class="model-profiles-current"><strong id="profiles-current">正在读取当前选择…</strong><p id="profiles-current-note"></p></section>
@@ -115,12 +130,21 @@
       <label for="profile-base_url">API 基础地址</label><input id="profile-base_url" type="url" required maxlength="2048" autocomplete="off" spellcheck="false" placeholder="填写你要使用的服务地址">
       <p>填写基础地址，不包含 /chat/completions。远程服务使用 HTTPS；HTTP 仅支持明确端口的本机回环地址。</p>
       <label for="profile-model">模型名称</label><input id="profile-model" required maxlength="128" pattern="[!-~]+" autocomplete="off" spellcheck="false" placeholder="服务提供的模型标识">
-      <label for="profile-key_env">密钥环境变量名</label><input id="profile-key_env" required maxlength="80" pattern="(?:ASTRA_API_KEY|ASTRA_MODEL_(?:[A-Z][A-Z0-9_]{0,48}_)?API_KEY)" autocomplete="off" spellcheck="false" placeholder="只填变量名，不要填写密钥值">
-      <p>密钥由你在后端环境设置。变量名须为 ASTRA_API_KEY、ASTRA_MODEL_API_KEY 或 ASTRA_MODEL_名称_API_KEY；页面不读取或保存密钥值。</p>
+      <label for="profile-key-source">密钥来源</label><select id="profile-key-source"><option id="profile-key-source-stored" value="stored">直接填写 API Key</option><option value="environment">环境变量（高级）</option></select>
+      <div id="profile-key-stored">
+        <label for="profile-api_key">API Key</label><input id="profile-api_key" type="password" maxlength="4096" autocomplete="new-password" spellcheck="false" aria-describedby="profile-key-status" placeholder="粘贴服务商提供的 API Key">
+        <p id="profile-key-status" role="status">密钥在本机加密保存，保存后无需重启。已保存的密钥不会回显。</p>
+        <button id="profile-delete-key" class="text-button danger" type="button" hidden>删除已保存密钥</button>
+      </div>
+      <div id="profile-key-environment" hidden>
+        <label for="profile-key_env">密钥环境变量名</label><input id="profile-key_env" maxlength="80" pattern="(?:ASTRA_API_KEY|ASTRA_MODEL_(?:[A-Z][A-Z0-9_]{0,48}_)?API_KEY)" autocomplete="off" spellcheck="false" placeholder="例如 ASTRA_MODEL_DEEPSEEK_API_KEY">
+        <p id="profile-key-env-note">只填变量名，实际密钥由启动服务的终端提供。</p>
+      </div>
       <div class="profile-number-grid"><div><label for="profile-timeout">请求超时（秒）</label><input id="profile-timeout" type="number" required min="1" max="120" step="any"></div><div><label for="profile-max_output_tokens">每次最大输出 tokens</label><input id="profile-max_output_tokens" type="number" required min="1" max="32768" step="1"></div></div>
       <div class="model-profile-actions"><button id="profile-save" class="primary" type="submit">保存配置</button><button id="profile-discard" class="secondary" type="button">放弃修改</button><button id="profile-delete" class="text-button danger" type="button" hidden>删除配置</button></div>
     </form>
-    <section id="profile-delete-confirmation" class="model-profile-confirm" hidden><strong>删除这份已保存配置？</strong><p>已有运行记录保留。使用中的配置可能被后端拒绝删除；请先选择其他配置。</p><div class="model-profile-actions"><button id="profile-delete-confirm" class="secondary danger" type="button">确认删除</button><button id="profile-delete-cancel" class="text-button" type="button">取消删除</button></div></section>
+    <section id="profile-delete-confirmation" class="model-profile-confirm" hidden><strong>删除这份已保存配置？</strong><p>同时删除本机保存的密钥，保留历史运行记录。请先结束使用此配置的任务；这不会撤销供应商端的 Key。</p><div class="model-profile-actions"><button id="profile-delete-confirm" class="secondary danger" type="button">确认删除</button><button id="profile-delete-cancel" class="text-button" type="button">取消删除</button></div></section>
+    <section id="profile-delete-key-confirmation" class="model-profile-confirm" hidden><strong>删除本机保存的密钥？</strong><p>地址和模型配置保留，再次使用前需填写新密钥。请先结束使用此配置的任务；这不会撤销供应商端的 Key。</p><div class="model-profile-actions"><button id="profile-delete-key-confirm" class="secondary danger" type="button">确认删除密钥</button><button id="profile-delete-key-cancel" class="text-button" type="button">取消</button></div></section>
     <section class="model-profile-test"><h3>单独测试连接</h3><p id="profile-test-target"></p><label class="profile-test-consent"><input id="profile-test-confirmed" type="checkbox"><span>我确认向所示地址发送固定合成文本，并知悉可能产生费用。</span></label><div class="model-profile-actions"><button id="profile-test" class="secondary" type="button">测试连接</button><button id="profile-test-cancel" class="text-button" type="button" hidden>停止等待测试</button></div><div id="profile-test-result" class="profile-test-result" role="status"></div></section>
     </div>
   </div>

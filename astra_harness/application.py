@@ -399,7 +399,18 @@ class Application:
         with self._lock:
             if self._closed:
                 raise RuntimeError("application closed")
-            return deepcopy(self._catalog().save(profile, expected_revision))
+            catalog = self._catalog()
+            # Switching away from local storage also deletes its credential;
+            # apply the same active-run guard as the explicit delete action.
+            removes_key = (isinstance(profile, dict) and profile.get("key_env", "ASTRA_MODEL_API_KEY") is not None
+                           and any(item["id"] == profile.get("id") and item.get("key_env") is None
+                                   for item in catalog.list()["items"]))
+            if removes_key:
+                self._assert_model_profile_idle(profile["id"])
+            result = deepcopy(catalog.save(profile, expected_revision))
+            if removes_key:
+                self._forget_model_credentials(profile["id"])
+            return result
 
     def select_model_profile(self, identifier, expected_revision):
         with self._lock:
@@ -412,10 +423,32 @@ class Application:
             if self._closed:
                 raise RuntimeError("application closed")
             catalog = self._catalog()
-            if any((run["status"] not in TERMINAL or self._unknown_blocks(run))
-                   and (run.get("model_snapshot") or {}).get("id") == identifier for run in self.store.runs()):
-                raise ModelProfileError("model_profile_in_use")
-            return deepcopy(catalog.delete(identifier, expected_revision))
+            self._assert_model_profile_idle(identifier)
+            result = deepcopy(catalog.delete(identifier, expected_revision))
+            self._forget_model_credentials(identifier)
+            return result
+
+    def delete_model_profile_key(self, identifier, expected_revision):
+        with self._lock:
+            if self._closed:
+                raise RuntimeError("application closed")
+            self._assert_model_profile_idle(identifier)
+            result = deepcopy(self._catalog().delete_key(identifier, expected_revision))
+            self._forget_model_credentials(identifier)
+            return result
+
+    def _assert_model_profile_idle(self, identifier):
+        if any((run["status"] not in TERMINAL or self._unknown_blocks(run))
+               and (run.get("model_snapshot") or {}).get("id") == identifier for run in self.store.runs()):
+            raise ModelProfileError("model_profile_in_use")
+
+    def _forget_model_credentials(self, identifier):
+        identities = {binding.identity for binding in self._model_bindings.values()
+                      if binding.snapshot.get("id") == identifier}
+        self._model_bindings = {key: binding for key, binding in self._model_bindings.items()
+                                if binding.snapshot.get("id") != identifier}
+        self._profile_executions = {key: execution for key, execution in self._profile_executions.items()
+                                    if key[1] not in identities}
 
     async def test_model_profile(self, identifier, expected_revision):
         with self._lock:

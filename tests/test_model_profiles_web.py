@@ -5,6 +5,7 @@ from contextlib import ExitStack
 import http.client
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import os
 from pathlib import Path
 import socket
 import tempfile
@@ -350,6 +351,68 @@ class ModelProfilesWebTests(unittest.TestCase):
         self.assertEqual(len(other.requests), 1)
         self.assertTrue(self.mock.requests[0]["authorized"])
         self.assertTrue(other.requests[0]["authorized"])
+
+    @unittest.skipUnless(os.name == "nt", "Windows DPAPI")
+    def test_browser_key_save_use_delete_and_replace_without_restart(self):
+        catalog, item = self.save(key_env=None, api_key=SYNTHETIC_KEY)
+        self.assertTrue(item["has_api_key"])
+        self.assertNotIn(SYNTHETIC_KEY, json.dumps(catalog))
+        self.assertEqual(self.mock.requests, [], "saving must not contact provider")
+        self.select(item)
+        status, submitted = self.request("/api/runs", "POST", {"prompt": "synthetic stored key task"})
+        self.assertEqual(status, 201, submitted)
+        finished = self.app.wait(submitted["id"])
+        self.assertEqual(finished["status"], "completed", finished)
+        self.assertTrue(self.mock.requests[0]["authorized"])
+        for path in ("/api/model-profiles", "/api/info", "/api/runs/" + submitted["id"],
+                     "/api/sessions/" + submitted["session_id"]):
+            self.assertNotIn(SYNTHETIC_KEY, json.dumps(self.request(path)))
+        body = {"id": item["id"], "expected_revision": self.catalog()["revision"]}
+        status, deleted = self.request("/api/model-profiles/delete-key", "POST", body)
+        self.assertEqual(status, 200, deleted)
+        self.assertEqual(deleted["selected_id"], item["id"])
+        self.assertFalse(deleted["items"][0]["has_api_key"])
+        self.assertEqual(self.request("/api/runs", "POST", {"prompt": "must fail locally"}),
+                         (409, {"error": "model_credentials_missing"}))
+        self.assertEqual(len(self.mock.requests), 1)
+        self.save(id=item["id"], key_env=None, api_key=SYNTHETIC_KEY)
+        status, submitted = self.request("/api/runs", "POST", {"prompt": "fresh synthetic task"})
+        self.assertEqual(status, 201, submitted)
+        self.assertEqual(self.app.wait(submitted["id"])["status"], "completed")
+        self.assertEqual(len(self.mock.requests), 2)
+        self.assertEqual(self.environment_reads, 0)
+
+    @unittest.skipUnless(os.name == "nt", "Windows DPAPI")
+    def test_key_deletion_is_guarded_by_origin_revision_and_inflight_probe(self):
+        catalog, item = self.save(key_env=None, api_key=SYNTHETIC_KEY)
+        body = {"id": item["id"], "expected_revision": catalog["revision"]}
+        for headers in ({"Origin": "https://attacker.invalid"}, {"Host": "attacker.invalid"}):
+            self.assertEqual(self.request("/api/model-profiles/delete-key", "POST", body, headers)[0], 403)
+        self.assertEqual(self.request("/api/model-profiles/delete-key", "POST", {**body, "expected_revision": 0}),
+                         (409, {"error": "model_profile_conflict"}))
+        self.mock.mode = "hold"
+        outcome = []
+        thread = threading.Thread(target=lambda: outcome.append(self.request("/api/model-profiles/test", "POST",
+                                  {**body, "confirmed": True})))
+        thread.start()
+        try:
+            self.assertTrue(self.mock.started.wait(3))
+            for action in ("delete-key", "delete"):
+                self.assertEqual(self.request("/api/model-profiles/" + action, "POST", body),
+                                 (409, {"error": "model_profile_in_use"}))
+            self.assertTrue(self.catalog()["items"][0]["has_api_key"])
+        finally:
+            self.mock.stop.set()
+            thread.join(5)
+        self.assertFalse(thread.is_alive())
+
+    def test_malformed_browser_secret_is_rejected_without_echo(self):
+        for secret in (None, True, "synthetic key with spaces", "synthetic\r\nheader", "x" * 4097):
+            status, value = self.request("/api/model-profiles/save", "POST", {
+                "profile": self.profile(key_env=None, api_key=secret), "expected_revision": 0})
+            self.assertEqual((status, value), (400, {"error": "model_credentials_invalid"}))
+        self.assertEqual(self.catalog()["revision"], 0)
+        self.assertEqual(self.mock.requests, [])
 
 
 class ModelProfilesCLIIntegrationTests(unittest.TestCase):

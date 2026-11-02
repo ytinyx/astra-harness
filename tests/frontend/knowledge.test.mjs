@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {KnowledgeSession, EmbeddingConfigSession, operationOutcome, belongsToCollection, canImport,
-  actionRecoveryIdentity, embeddingReadiness, embeddingUsage, embeddingActions} from '../../astra_harness/static/knowledge-state.mjs';
+  actionRecoveryIdentity, embeddingReadiness, embeddingUsage, embeddingActions, KnowledgeCreation, encodeKnowledgeFile} from '../../astra_harness/static/knowledge-state.mjs';
 import {createKnowledgeView} from '../../astra_harness/static/knowledge.mjs';
 
 const collection = id => ({id, label: id, recovery_identity: (id === 'product' ? 'a' : 'b').repeat(64),
@@ -10,6 +10,66 @@ const collection = id => ({id, label: id, recovery_identity: (id === 'product' ?
 const a = collection('product'), b = collection('notes');
 const sha = 'a'.repeat(64), indexed = 'b'.repeat(64);
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => {resolve = yes; reject = no;}); return {promise, resolve, reject}; };
+
+const managedInfo = workspace_id => ({workspace_id, enabled: true, collections: [], management: {can_create: true, revision: 'c'.repeat(64)}});
+test('creation double click and uncertain reload reuse the same persisted identity', async () => {
+  const pending = deferred(), records = new Map(), calls = [];
+  const options = {read: key => records.get(key), write: (key, value) => records.set(key, value), makeId: () => 'kb_' + 'a'.repeat(24)};
+  const first = new KnowledgeCreation({...options, request: async (...args) => { calls.push(args); return pending.promise; }});
+  first.select(managedInfo('workspace-one'));
+  const sending = first.start('产品手册');
+  assert.equal(await first.start('第二次点击'), null);
+  pending.reject(new Error('network lost')); await sending;
+  assert.equal(calls.length, 1);
+  const second = new KnowledgeCreation({...options, makeId: () => { throw new Error('must reuse'); }, request: async (...args) => {
+    calls.push(args); return {ok: true, id: args[2].id};
+  }});
+  second.select(managedInfo('workspace-one'));
+  assert.equal(second.state.pending.label, '产品手册');
+  await second.start('ignored while pending');
+  assert.deepEqual(calls[0], calls[1]);
+  assert.equal(records.get('workspace-one'), '');
+});
+test('collection listing confirms a lost create response without another POST', () => {
+  let record = JSON.stringify({id: 'kb_' + 'a'.repeat(24), label: '产品手册', workspace_id: 'one', expected_revision: 'b'.repeat(64)});
+  const creation = new KnowledgeCreation({read: () => record, write: (_, value) => { record = value; }, request: () => { throw new Error('no POST'); }});
+  creation.select({...managedInfo('one'), collections: [{id: 'kb_' + 'a'.repeat(24), label: '产品手册'}]});
+  assert.equal(record, ''); assert.equal(creation.state.pending, null);
+});
+test('late create response cannot replace the selected workspace form', async () => {
+  const pending = deferred();
+  const creation = new KnowledgeCreation({request: () => pending.promise, makeId: () => 'kb_' + 'a'.repeat(24)});
+  creation.select(managedInfo('one')); const sending = creation.start('First');
+  creation.select(managedInfo('two'));
+  pending.resolve({ok: true, id: 'kb_' + 'a'.repeat(24)}); await sending;
+  assert.equal(creation.state.info.workspace_id, 'two'); assert.equal(creation.state.busy, false);
+  assert.equal(creation.state.pending, null);
+});
+test('explicit conflict releases creation input but does not retry', async () => {
+  let count = 0;
+  const creation = new KnowledgeCreation({request: async () => { count++; throw Object.assign(new Error('conflict'), {status: 409}); }, makeId: () => 'kb_' + 'a'.repeat(24)});
+  creation.select(managedInfo('one')); await creation.start('Library');
+  assert.equal(count, 1); assert.equal(creation.state.pending, null); assert.equal(creation.state.busy, false);
+  assert.match(creation.state.error, /conflict/);
+});
+test('upload encoding preserves UTF-8 bytes and rejects binary or oversized files', async () => {
+  const bytes = new TextEncoder().encode('\ufeff中文材料\r\nGold 17 seconds\r\n');
+  const file = {name: 'guide.md', size: bytes.length, arrayBuffer: async () => bytes.buffer};
+  assert.deepEqual(Buffer.from(await encodeKnowledgeFile(file), 'base64'), Buffer.from(bytes));
+  await assert.rejects(encodeKnowledgeFile({...file, name: 'guide.pdf'}));
+  await assert.rejects(encodeKnowledgeFile({...file, size: 128001}));
+  await assert.rejects(encodeKnowledgeFile({name: 'bad.txt', size: 1, arrayBuffer: async () => new Uint8Array([255]).buffer}));
+  await assert.rejects(encodeKnowledgeFile({name: 'bad.txt', size: 1, arrayBuffer: async () => new Uint8Array([0]).buffer}));
+});
+test('empty managed library exposes creation and leaves existing forms hidden', async () => {
+  await withKnowledgeView(async () => managedInfo('one'), async (view, el) => {
+    await view.open();
+    assert.equal(el('knowledge-manage').hidden, false);
+    assert.equal(el('knowledge-unavailable').hidden, true);
+    assert.equal(el('knowledge-content').hidden, true);
+    assert.equal(el('knowledge-create').disabled, false);
+  });
+});
 function operation(library, request, status = 'waiting_approval') {
   const name = library.tools[request.action];
   return {id: `run-${library.id}`, session_id: `session-${library.id}`, kind: 'tool', status,

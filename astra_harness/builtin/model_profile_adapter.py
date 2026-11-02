@@ -93,7 +93,8 @@ def validate_profile_config(value):
     if (result["provider"] != "chat_completions" or not isinstance(result["model"], str)
             or not 1 <= len(result["model"]) <= 128
             or any(ord(c) < 33 or ord(c) > 126 for c in result["model"])
-            or not isinstance(result["key_env"], str) or _KEY_ENV.fullmatch(result["key_env"]) is None
+            or (result["key_env"] is not None and (not isinstance(result["key_env"], str)
+                or _KEY_ENV.fullmatch(result["key_env"]) is None))
             or type(result["timeout"]) not in (int, float) or not 1 <= result["timeout"] <= 120
             or type(result["max_output_tokens"]) is not int or not 1 <= result["max_output_tokens"] <= 32768):
         raise ValueError("invalid_model_profile")

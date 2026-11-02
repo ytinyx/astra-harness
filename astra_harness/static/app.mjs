@@ -4,6 +4,7 @@ import {createModelProfilesView} from './model-profiles.mjs';
 import {createMCPProfilesView} from './mcp-profiles.mjs';
 import {mcpProfileError} from './mcp-profiles-state.mjs';
 import {createLocalSkillsView} from './local-skills.mjs';
+import {createServerControl} from './server-control.mjs';
 import {skillError, skillRunLabel} from './local-skills-state.mjs';
 import {sessionModelMismatch, modelProfileError} from './model-profiles-state.mjs';
 import {scopedSubmission, workspaceQuery} from './workspace-state.mjs';
@@ -44,6 +45,7 @@ function report(error) { if (error.name !== 'AbortError') showError(error.messag
 let toastTimer;
 function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => {$('toast').hidden = true;}, 2800); }
 async function api(path, method = 'GET', body, signal) {
+  if (state.serverStopping) throw new DOMException('服务正在退出', 'AbortError');
   const options = {method, headers: {}, signal};
   if (body !== undefined) { options.headers['Content-Type'] = 'application/json'; options.body = JSON.stringify(body); }
   const response = await fetch(path, options);
@@ -74,6 +76,15 @@ async function api(path, method = 'GET', body, signal) {
       model_profile_in_use: '配置仍在运行或测试中，请等待结束后再操作。',
       model_profile_unavailable: '后端当前无法读取或使用模型配置，请检查本地服务。',
       model_profiles_disabled: '当前宿主未启用模型配置管理。'};
+    Object.assign(labels, {
+      knowledge_invalid_file: '请选择有效的 UTF-8 .md / .txt 文件，大小为 1 至 128,000 字节，文件名不能包含路径或特殊字符。',
+      knowledge_invalid_collection: '知识库名称无效，请填写 1 至 64 个字符。',
+      knowledge_file_exists: '已有同名文件且内容不同，请先重命名要上传的文件。原文件未被覆盖。',
+      knowledge_limit: '知识库数量或材料容量达到上限，请整理材料后重试。',
+      knowledge_conflict: '知识库配置已变化，请刷新列表后核对。待生效的语义配置需要先重启。',
+      knowledge_unavailable: '知识库暂时无法保存，请检查本地目录或服务状态，再刷新核对。',
+      runtime_update_busy: '请先完成或取消正在执行、暂停、待审批的任务，再新建知识库。'
+    });
     const error = new Error(skillError(data.error) || mcpProfileError(data.error, path) || modelProfileError(data.error) || (Object.hasOwn(labels, data.error) ? labels[data.error] : `请求失败（${response.status}）。`));
     error.status = response.status; error.code = data.error; throw error;
   }
@@ -345,6 +356,7 @@ async function selectRun(id, changeSelection = true) {
 }
 function watch(id, generation = state.generation) {
   disconnect();
+  if (state.serverStopping) return;
   const source = new EventSource(`/api/runs/${encodeURIComponent(id)}/events?after=${state.view.lastSeq}`); state.source = source;
   const current = () => generation === state.generation && state.run?.id === id && state.source === source;
   source.addEventListener('run', event => {
@@ -568,6 +580,7 @@ function renderModelMode() {
 }
 
 const knowledge = createKnowledgeView({api,
+  onChanged: () => { refreshSessions().catch(report); loadFiles(state.filePath).catch(report); },
   onOpen: () => { shell.classList.add('knowledge-open'); $('knowledge-workspace').hidden = false; sidebar(false); },
   onClose: () => { shell.classList.remove('knowledge-open'); $('knowledge-workspace').hidden = true; },
   onMenu: event => sidebar(!shell.classList.contains('sidebar-open'), {trigger: event.currentTarget}),
@@ -677,6 +690,11 @@ $('dialog-form').addEventListener('submit', async event => {
   }
 });
 window.addEventListener('beforeunload', disconnect);
+createServerControl({$, onOpen: () => sidebar(false),
+  onClose: () => $(sidebarMedia.matches ? 'sidebar-toggle' : 'exit-service').focus(), onAccepted: () => {
+  state.serverStopping = true; selection(); state.controller.abort(); knowledge.reset();
+  shell.inert = true; document.title = 'Astra Harness · 服务退出';
+}});
 
 async function initialize() {
   try {

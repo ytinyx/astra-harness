@@ -1,5 +1,5 @@
 import {KnowledgeSession, EmbeddingConfigSession, operationOutcome, operationTerminal, actionLabels,
-  embeddingActions, embeddingReadiness, embeddingUsage, canImport} from './knowledge-state.mjs';
+  embeddingActions, embeddingReadiness, embeddingUsage, canImport, KnowledgeCreation, encodeKnowledgeFile} from './knowledge-state.mjs';
 import {formatSize} from './state.mjs';
 
 const statusNames = {current: '来源一致', stale: '来源已变化', missing: '源文件已移除', unreadable: '来源暂不可读', unindexed: '尚未导入'};
@@ -27,7 +27,7 @@ function saved(key) { try { return localStorage.getItem(key); } catch { return n
 function remember(key, value) { try { localStorage.setItem(key, value); } catch {} }
 function explain(code) { return problemNames[code] || (code ? `操作未完成（${code}）。请查看运行记录。` : '请检查本地服务后重试。'); }
 
-export function createKnowledgeView({api, onOpen, onClose, onMenu, onOpenRun}) {
+export function createKnowledgeView({api, onOpen, onClose, onMenu, onOpenRun, onChanged = () => {}}) {
   let visible = false, generation = 0, controller = null, collection = null, collections = [], catalog = null;
   let loading = false, inspecting = false, prepared = null, queryResult = null, observedTerminal = null;
   let embeddingStatus = null, statusLoading = false, statusError = '', configDirty = false, renderedConfig = null, statusRevision = 0;
@@ -35,6 +35,20 @@ export function createKnowledgeView({api, onOpen, onClose, onMenu, onOpenRun}) {
     read: () => saved('astra.knowledge.operations'), write: value => remember('astra.knowledge.operations', value),
     changed: renderOperation, allowed: embeddingAllowed});
   const settings = new EmbeddingConfigSession({request: api, changed: renderEmbeddingConfig});
+  let info = null, uploading = false;
+  const creation = new KnowledgeCreation({request: api, changed: renderManagement,
+    read: id => saved('astra.knowledge.create.' + id), write: (id, value) => remember('astra.knowledge.create.' + id, value)});
+
+  function renderManagement() {
+    const state = creation.state;
+    $('knowledge-manage').hidden = !state.info?.management?.can_create;
+    if (!state.info?.management?.can_create) return;
+    $('knowledge-name').disabled = state.busy || !!state.pending;
+    if (state.pending) $('knowledge-name').value = state.pending.label;
+    $('knowledge-create').textContent = state.busy ? '正在创建…' : state.pending ? '重新确认创建' : '新建并启用';
+    $('knowledge-create-notice').textContent = state.error || `最多 ${state.info?.management?.max_collections || 8} 个知识库。新建时请先结束正在执行、暂停或待审批的任务。`;
+    controls();
+  }
 
   function embeddingAllowed(action) {
     if (!embeddingActions.has(action)) return true;
@@ -52,7 +66,13 @@ export function createKnowledgeView({api, onOpen, onClose, onMenu, onOpenRun}) {
     return generation;
   }
   function controls() {
-    const blocked = session.locked(), available = !!collection;
+    const blocked = !!collection && session.locked() || uploading || creation.state.busy, available = !!collection;
+    $('knowledge-create').disabled = blocked || loading;
+    $('knowledge-reload').disabled = uploading || creation.state.busy;
+    $('knowledge-collection').disabled = uploading || creation.state.busy;
+    $('knowledge-upload-file').disabled = !available || blocked;
+    $('knowledge-upload').disabled = !available || blocked || !$('knowledge-upload-file').files?.length;
+    $('knowledge-upload').textContent = uploading ? '正在上传…' : '上传并查看材料';
     $('knowledge-refresh').disabled = !available || loading || inspecting;
     $('knowledge-file').disabled = !available || loading || inspecting || blocked;
     $('knowledge-inspect').disabled = !available || loading || inspecting || blocked || !$('knowledge-file').value;
@@ -306,19 +326,23 @@ export function createKnowledgeView({api, onOpen, onClose, onMenu, onOpenRun}) {
     resetReads(); collection = selected; catalog = null; prepared = null; queryResult = null; observedTerminal = null; inspecting = false;
     embeddingStatus = null; statusError = ''; statusLoading = false; configDirty = false; renderedConfig = null;
     $('embedding-config-form').reset(); $('knowledge-mode').value = 'lexical'; updateSearchMode();
+    $('knowledge-upload-file').value = ''; $('knowledge-upload-notice').textContent = '';
     remember('astra.knowledge.collection', id); $('knowledge-collection').value = id;
     $('knowledge-scope').textContent = `材料目录：${selected.source_scope} · 独立索引，不跨集合检索`;
     showError(); renderPrepared(); renderResults(); renderCatalog();
     await Promise.all([session.select(selected), refreshCatalog(), settings.select(selected.id), refreshEmbeddingStatus()]);
   }
-  async function open() {
+  async function open(preferredId = null) {
     visible = true; onOpen(); const token = resetReads();
     $('knowledge-unavailable').hidden = true; $('knowledge-content').hidden = true; $('knowledge-loading').hidden = false; showError();
+    $('knowledge-manage').hidden = true;
     try {
-      const info = await api('/api/knowledge', 'GET', undefined, controller.signal);
+      const currentInfo = await api('/api/knowledge', 'GET', undefined, controller.signal);
       if (token !== generation || !visible) return;
+      info = currentInfo; collection = null; creation.select(info);
       collections = Array.isArray(info.collections) ? info.collections : [];
       if (!info.enabled || !collections.length) {
+        if (info.management?.can_create) { $('knowledge-name').focus?.(); return; }
         const otherWorkspace = info.reason === 'workspace_not_configured';
         $('knowledge-unavailable-title').textContent = otherWorkspace ? '未为此工作区配置知识库。' : '先为工作台配置一份本地索引。';
         $('knowledge-unavailable-help').textContent = otherWorkspace ? '知识库与 MCP 绑定启动目录。切回启动工作区后可继续查看原材料；当前目录不会沿用旧集合或索引。' : '启动时提供 --knowledge-index，或通过 --knowledge-config 配置多个独立集合。页面不会自动读取或导入你的材料。';
@@ -327,7 +351,8 @@ export function createKnowledgeView({api, onOpen, onClose, onMenu, onOpenRun}) {
       const select = $('knowledge-collection'); select.replaceChildren();
       for (const item of collections) { const option = node('option', item.label); option.value = item.id; select.append(option); }
       $('knowledge-content').hidden = false;
-      await choose(collections.some(item => item.id === saved('astra.knowledge.collection')) ? saved('astra.knowledge.collection') : collections[0].id);
+      const wanted = preferredId || saved('astra.knowledge.collection');
+      await choose(collections.some(item => item.id === wanted) ? wanted : collections[0].id);
     } catch (error) { if (token === generation && error.name !== 'AbortError') showError(error.message); }
     finally { if (token === generation && visible && !loading) $('knowledge-loading').hidden = true; }
   }
@@ -336,6 +361,7 @@ export function createKnowledgeView({api, onOpen, onClose, onMenu, onOpenRun}) {
     close(); collection = null; collections = []; catalog = null; prepared = null; queryResult = null;
     embeddingStatus = null; statusRevision++; loading = false; inspecting = false;
     $('knowledge-content').hidden = true; $('knowledge-unavailable').hidden = true;
+    info = null; creation.select({}); $('knowledge-manage').hidden = true;
     $('knowledge-collection').replaceChildren(); $('knowledge-query').value = '';
     // Persisted operation records remain available on returning to their binding.
     // No operation is retried or cancelled merely by changing the visible root.
@@ -347,6 +373,37 @@ export function createKnowledgeView({api, onOpen, onClose, onMenu, onOpenRun}) {
     queryResult = null; renderResults(); renderEmbeddingStatus(); controls();
   }
   $('knowledge-back').addEventListener('click', close);
+  $('knowledge-reload').addEventListener('click', () => open());
+  $('knowledge-create-form').addEventListener('submit', async event => {
+    event.preventDefault(); if (collection && session.locked() || uploading) return;
+    const token = generation, id = await creation.start($('knowledge-name').value);
+    if (id && token === generation && visible) { $('knowledge-name').value = ''; await open(id); onChanged(); }
+  });
+  $('knowledge-upload-file').addEventListener('change', () => { $('knowledge-upload-notice').textContent = ''; controls(); });
+  $('knowledge-upload-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const file = $('knowledge-upload-file').files?.[0];
+    if (!file || !collection || !info?.workspace_id || uploading || session.locked()) return;
+    const token = generation, selected = collection, workspaceId = info.workspace_id;
+    uploading = true; showError(); controls();
+    $('knowledge-upload-notice').textContent = '正在保存到本机知识库…';
+    try {
+      const content = await encodeKnowledgeFile(file);
+      if (token !== generation || !visible) return;
+      const result = await api(`/api/knowledge/${encodeURIComponent(selected.id)}/files`, 'POST', {
+        filename: file.name, content_base64: content, workspace_id: workspaceId, expected_identity: selected.recovery_identity});
+      if (token !== generation || !visible) return;
+      if (result.ok !== true) throw new Error('上传结果无法确认，请刷新资料核对。');
+      $('knowledge-upload-notice').textContent = `${result.path} 已保存。请在下方提交导入审批，批准后即可检索。`;
+      $('knowledge-upload-file').value = '';
+      await refreshCatalog(); await inspect(result.path); onChanged();
+    } catch (error) {
+      if (token === generation && visible) {
+        $('knowledge-upload-notice').textContent = '可刷新资料核对；重新上传相同文件不会产生第二份或覆盖原文件。';
+        showError(error.message);
+      }
+    } finally { uploading = false; controls(); }
+  });
   $('knowledge-menu').addEventListener('click', onMenu);
   $('knowledge-collection').addEventListener('change', event => choose(event.target.value));
   $('knowledge-refresh').addEventListener('click', () => { showError(); prepared = null; queryResult = null; renderPrepared(); renderResults(); refreshCatalog(); refreshEmbeddingStatus(); });

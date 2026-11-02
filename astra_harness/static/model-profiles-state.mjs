@@ -1,7 +1,7 @@
 const fields = ['name', 'provider', 'base_url', 'model', 'key_env', 'timeout', 'max_output_tokens'];
 const profileErrors = Object.freeze({
   model_profiles_disabled: '当前宿主未启用模型配置管理。',
-  invalid_model_profile: '配置格式不正确。请检查基础地址、模型名、环境变量名和数值范围；不要填写密钥值。',
+  invalid_model_profile: '配置格式不正确。请检查基础地址、模型名、密钥来源和数值范围。API Key 只能填在专用密钥框中。',
   model_profile_conflict: '配置版本已变化。请重新读取并核对；未保存草稿会保留，必要时放弃修改后重新编辑。',
   model_profile_not_found: '这份模型配置已不存在，请重新读取配置列表。',
   model_profile_in_use: '这份配置仍被运行或连接测试使用，请等待结束后再操作。',
@@ -9,9 +9,10 @@ const profileErrors = Object.freeze({
   model_profile_not_selected: '当前模型选择已变化。请重新读取配置并核对后再发送。',
   model_profile_changed: '本次运行绑定的模型配置已变化。请核对配置并新建任务；原运行不会静默换模型。',
   model_session_mismatch: '此对话绑定了另一模型配置。请新建对话；旧历史不会发送给新模型。',
-  model_credentials_missing: '后端未找到此配置指定的密钥环境变量。请在启动服务的环境中设置对应变量并重启服务；表单只填写变量名，不填写密钥值。',
-  model_credentials_invalid: '后端环境变量中的凭据格式无效。请在后端检查变量值；不要把密钥粘贴到网页。',
-  model_credentials_changed: '凭据与运行创建时不一致。请核对后端环境并新建任务；原运行不会自动改用新凭据。',
+  model_credentials_missing: '此配置缺少 API Key。请在模型配置中输入并保存；使用密钥环境变量时，先在后端设置变量并重启，变量名一栏只填写变量名。',
+  model_credentials_invalid: 'API Key 格式无效。请填写完整密钥，不能含空格、换行或非 ASCII 字符，长度不超过 4096。',
+  model_credentials_changed: '凭据与运行创建时不一致。请核对密钥并新建任务；原运行不会自动改用新凭据。',
+  model_key_storage_unavailable: '无法使用本机密钥存储。网页保存密钥需要 Windows；请使用保存时的系统账户，或重新输入密钥，也可改用环境变量。',
   model_endpoint_not_public: '远程地址未通过公开服务地址检查。请使用 HTTPS 公开服务，或带明确端口的数字本机回环地址。',
   model_dns_failed: '无法解析模型服务地址。请检查地址与网络配置。',
   model_request_too_large: '模型请求超过允许大小，本次请求未能完成。',
@@ -26,11 +27,12 @@ const profileErrors = Object.freeze({
 export function modelProfileError(code) {
   return typeof code === 'string' && Object.hasOwn(profileErrors, code) ? profileErrors[code] : null;
 }
-export const blankModelProfile = () => ({name: '', provider: 'chat_completions', base_url: '', model: '', key_env: '', timeout: 30, max_output_tokens: 1024});
+export const blankModelProfile = (canStore = true) => ({name: '', provider: 'chat_completions', base_url: '', model: '', key_env: canStore ? null : '', api_key: '', timeout: 30, max_output_tokens: 1024});
 function editable(profile) {
   const result = {};
   if (profile.id) result.id = profile.id;
   for (const key of fields) result[key] = profile[key];
+  result.api_key = '';
   return result;
 }
 export function sessionModelMismatch(session, selectedIdentity = 'startup') {
@@ -65,20 +67,22 @@ export class ModelProfilesSession {
     if (!this.mutable() || this.state.testing || this.state.dirty) return;
     const profile = id ? this.state.catalog?.items.find(item => item.id === id) : null;
     if (id && !profile) return;
-    this.state.draft = profile ? editable(profile) : blankModelProfile();
+    this.state.draft = profile ? editable(profile) : blankModelProfile(this.state.catalog?.can_store_api_key !== false);
     this.state.draftRevision = this.state.catalog?.revision;
     this.state.dirty = false; this.state.stale = false; this.state.error = ''; this.state.notice = ''; this.state.testResult = null; this.emit();
   }
   update(values) {
     if (!this.mutable() || this.state.testing) return;
     for (const field of fields) if (Object.hasOwn(values, field)) this.state.draft[field] = values[field];
+    if (Object.hasOwn(values, 'api_key')) this.state.draft.api_key = values.api_key;
+    if (this.state.draft.key_env !== null) this.state.draft.api_key = '';
     this.state.dirty = true; this.state.testResult = null; this.emit();
   }
   resetDraft() {
     if (this.state.testing) return;
     const previousId = this.state.draft.id;
     const profile = this.state.catalog?.items.find(item => item.id === previousId);
-    this.state.draft = profile ? editable(profile) : blankModelProfile();
+    this.state.draft = profile ? editable(profile) : blankModelProfile(this.state.catalog?.can_store_api_key !== false);
     this.state.draftRevision = this.state.catalog?.revision;
     this.state.dirty = false; this.state.stale = false; this.state.testResult = null;
   }
@@ -99,20 +103,30 @@ export class ModelProfilesSession {
         const saved = catalog.items.find(item => payload.profile.id ? item.id === payload.profile.id : !knownIds.has(item.id));
         if (saved) this.state.draft = editable(saved);
         this.state.dirty = false;
-      } else if (action === 'delete' && this.state.draft.id === payload.id) this.state.draft = blankModelProfile();
+      } else if (action === 'delete' && this.state.draft.id === payload.id) this.resetDraft();
+      else if (action === 'delete-key') this.resetDraft();
       this.state.draftRevision = catalog.revision; this.state.testResult = null;
-      this.state.notice = action === 'save' ? '配置已保存；没有发送模型请求。' : action === 'select' ? '已选择供新任务使用的模型；没有发送模型请求。旧会话若绑定其他模型，请新建对话。' : '配置已删除；已有运行记录保留。';
+      this.state.notice = action === 'save' ? '配置已保存；选择此配置后即可用于新对话，没有发送模型请求。' : action === 'select' ? '已选择供新任务使用的模型；没有发送模型请求。旧会话若绑定其他模型，请新建对话。' : action === 'delete-key' ? '本机保存的密钥已删除，模型配置保留。再次使用前请填写新密钥；供应商端的 Key 未被撤销。' : '配置及其本机保存的密钥已删除；已有运行记录保留。';
       this.accepted(catalog);
     } catch (error) {
       this.state.uncertain = !(error.status >= 400 && error.status < 500);
       this.state.stale = error.status === 409;
-      this.state.error = this.state.uncertain ? '保存或选择结果尚未确认。请重新读取配置核对；不会自动重发操作。'
+      this.state.error = this.state.uncertain ? '操作结果尚未确认。请重新读取配置核对；不会自动重发操作。'
         : modelProfileError(error.code) || (error.status === 409 ? '配置版本已变化或当前配置仍在使用。请重新读取并核对，再操作。' : error.message);
-    } finally { this.state.busy = ''; this.emit(); }
+    } finally {
+      // Neither an error nor a closed panel should retain submitted secrets in
+      // the draft. The response contains status only, never a key to refill.
+      if (payload.profile) delete payload.profile.api_key;
+      this.state.busy = ''; this.emit();
+    }
   }
   save() {
-    if (!this.state.dirty || this.state.stale) return;
-    return this.mutate('save', {profile: editable(this.state.draft)}, this.state.draftRevision);
+    if (!this.state.dirty || this.state.stale || !this.mutable() || this.state.testing || !this.state.catalog) return;
+    const profile = editable(this.state.draft);
+    delete profile.api_key;
+    if (profile.key_env === null && this.state.draft.api_key) profile.api_key = this.state.draft.api_key;
+    this.state.draft.api_key = '';
+    return this.mutate('save', {profile}, this.state.draftRevision);
   }
   select(id) {
     if (this.state.dirty || id === this.state.catalog?.selected_id) return;
@@ -121,6 +135,14 @@ export class ModelProfilesSession {
   remove(id) {
     if (this.state.dirty) return;
     return this.mutate('delete', {id}, this.state.catalog?.revision);
+  }
+  removeKey(id) {
+    if (this.state.dirty || this.state.stale) return;
+    return this.mutate('delete-key', {id}, this.state.catalog?.revision);
+  }
+  clearSecret() {
+    this.state.draft.api_key = '';
+    this.emit();
   }
   async test(confirmed = false) {
     if (!confirmed || !this.mutable() || this.state.dirty || this.state.stale || this.state.testing || !this.state.draft.id) return;

@@ -41,13 +41,13 @@ class PackageReleaseTests(unittest.TestCase):
 
     def test_wheel_rejects_changed_runtime_private_files_and_runtime_dependencies(self):
         original = b"known source"
-        metadata = b"Metadata-Version: 2.1\nName: astra-harness\nVersion: 0.4.0\n"
+        metadata = b"Metadata-Version: 2.1\nName: astra-harness\nVersion: 0.5.0\n"
         for variant in ("valid", "changed", "private", "dependency"):
             with self.subTest(variant=variant), tempfile.TemporaryDirectory() as temporary:
                 wheel = Path(temporary) / "example.whl"
                 with zipfile.ZipFile(wheel, "w") as archive:
                     archive.writestr("astra_harness/__init__.py", b"changed" if variant == "changed" else original)
-                    archive.writestr("astra_harness-0.4.0.dist-info/METADATA",
+                    archive.writestr("astra_harness-0.5.0.dist-info/METADATA",
                                      metadata + (b"Requires-Dist: unwanted\n" if variant == "dependency" else b""))
                     if variant == "private":
                         archive.writestr("astra_harness/.env", "private sentinel")
@@ -98,11 +98,11 @@ class PackageReleaseTests(unittest.TestCase):
         for variant, requirements in variants.items():
             with self.subTest(variant=variant), tempfile.TemporaryDirectory() as temporary:
                 wheel = Path(temporary) / "test.whl"
-                metadata = "Metadata-Version: 2.1\nName: astra-harness\nVersion: 0.4.0\n"
+                metadata = "Metadata-Version: 2.1\nName: astra-harness\nVersion: 0.5.0\n"
                 metadata += "".join("Requires-Dist: " + value + "\n" for value in requirements)
                 with zipfile.ZipFile(wheel, "w") as archive:
                     archive.writestr("astra_harness/__init__.py", b"known source")
-                    archive.writestr("astra_harness-0.4.0.dist-info/METADATA", metadata)
+                    archive.writestr("astra_harness-0.5.0.dist-info/METADATA", metadata)
                 if variant == "valid":
                     self.assertEqual(audit_wheel(wheel, {"astra_harness/__init__.py": sha256(b"known source")}, dependencies)["runtime_dependencies"], dependencies)
                 else:

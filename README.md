@@ -4,7 +4,11 @@
 
 模型负责提出下一步；Astra Harness 负责检查工具调用、保存进度、等待批准，并在异常后判断能否继续。执行内核可以独立使用，本地网页用于操作任务、查看文件和追踪过程。
 
-**当前版本：[0.4.0](https://github.com/ytinyx/astra-harness/releases/tag/v0.4.0) · 本地单用户。** [变更日志](CHANGELOG.md) · [CI 检查](https://github.com/ytinyx/astra-harness/actions/workflows/ci.yml) · [MIT](LICENSE)
+**当前版本：[0.5.0](https://github.com/ytinyx/astra-harness/releases/tag/v0.5.0) · 本地单用户。** [变更日志](CHANGELOG.md) · [CI 检查](https://github.com/ytinyx/astra-harness/actions/workflows/ci.yml) · [MIT](LICENSE)
+
+Windows 网页支持直接填写、替换和删除 API Key，密钥由系统账户加密保存，无需为每次配置重启服务；环境变量方式继续兼容。操作见 [模型配置](docs/MODEL_PROFILES.md#网页填写与删除密钥)。
+
+0.5.0 也支持在 **知识库** 页面新建集合、上传 UTF-8 `.md`／`.txt` 材料，再经审批导入和检索。普通启动无需额外知识库参数；详见 [网页创建与上传](docs/KNOWLEDGE.md#网页创建与上传)。
 
 [快速开始](#快速开始) · [运行机制](#运行机制) · [扩展入口](#扩展入口) · [文档地图](docs/README.md) · [验证状态](HANDOFF.md)
 
@@ -12,10 +16,10 @@
 
 入门命令面向 Windows PowerShell，使用 **Python 3.10+ 和 uv**。第一次运行 Python 项目，可以直接跟随 [新手教程](docs/GETTING_STARTED.md)。
 
-先从 [Release 页面](https://github.com/ytinyx/astra-harness/releases/tag/v0.4.0) 下载并解压源码，在解压后的项目根目录执行。使用 Git 也可以获取同一固定版本：
+先从 [Release 页面](https://github.com/ytinyx/astra-harness/releases/tag/v0.5.0) 下载并解压源码，在解压后的项目根目录执行。使用 Git 也可以获取同一固定版本：
 
 ```powershell
-git clone --branch v0.4.0 --depth 1 https://github.com/ytinyx/astra-harness.git
+git clone --branch v0.5.0 --depth 1 https://github.com/ytinyx/astra-harness.git
 cd astra-harness
 ```
 
@@ -38,6 +42,8 @@ uv sync --locked --inexact
 首次使用全新数据库时，演示无需密钥，不调用外部模型。演示采用固定规则，仅用于验证运行流程。已有数据库会恢复模型档案选择，不能仅凭未传 `--live` 判断不会计费；提交前核对当前模型。`doctor` 是静态检查，不测试模型连通性。
 
 默认工作区是 `.local/workspace/`，状态保存在 `.local/harness.sqlite3`。同一数据库只运行一个宿主进程。更多操作见 [完整演示路线](docs/DEMO.md)。
+
+0.5.0 提供侧栏底部的 **退出服务**：点击并确认后关闭后台，保留已保存的对话、配置和文件。有任务执行或配置操作时会提示先处理；已暂停、待审批的任务可留待下次继续。仅关闭浏览器标签页不会停止后台。详见 [退出与重开](docs/GETTING_STARTED.md#退出服务)。
 
 ## 运行机制
 
@@ -74,9 +80,9 @@ Checkpoint 保存进度，但不能让任意外部副作用“恰好执行一次
 | 可选语义检索 | 用户自配 embedding 服务，显式审批后建索引或查询 | [Embedding](docs/EMBEDDING.md) |
 | 自定义任务指导 | 本地 `SKILL.md`，按次选择并冻结内容快照 | [Skill](docs/SKILLS.md) |
 
-![本地工作台中的合成任务、执行过程与审批入口](docs/images/workbench-current.jpg)
+![0.5.0 本地工作台：离线任务入口、知识库、模型配置与退出服务](docs/images/workbench-current.jpg)
 
-上图用于观察工作台中的任务、执行记录与审批入口，采用本地合成材料。界面截图不代表真实模型的任务成功率；具体操作与验证范围见 [演示路线](docs/DEMO.md) 和 [验证状态](HANDOFF.md)。
+上图展示 0.5.0 的工作台入口，左侧保留本轮合成任务记录。审批、工具结果、知识库上传和窄屏界面见 [运行快照](docs/SNAPSHOTS.md)；操作与验证范围见 [演示路线](docs/DEMO.md) 和 [验证状态](HANDOFF.md)。截图不代表真实模型的任务成功率。
 
 ## 扩展入口
 

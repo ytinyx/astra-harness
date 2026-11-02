@@ -11,10 +11,66 @@ const catalog = (items = [profile], selected = null, revision = 1) => ({revision
 const result = (overrides = {}) => ({id: profile.id, identity: profile.identity, revision: 1, profile_revision: 1, ok: true, request_issued: true, requested_model: profile.model, ...overrides});
 const deferred = () => {let resolve, reject; const promise = new Promise((yes, no) => {resolve = yes; reject = no;}); return {promise, resolve, reject};};
 
+test('web keys are write-only, cleared on submit, and blank edits omit the secret', async () => {
+  const saved = {...profile, key_env: null, has_api_key: true}, calls = [];
+  const session = new ModelProfilesSession({api: async (path, method, body) => {
+    calls.push({path, body: body && structuredClone(body)}); return catalog([saved]);
+  }});
+  await session.load(); session.begin();
+  session.update({name: 'Direct key', base_url: profile.base_url, model: 'fixture', api_key: 'synthetic-web-key'});
+  const saving = session.save();
+  assert.equal(session.state.draft.api_key, '', 'clear the password before waiting for the response');
+  await saving;
+  assert.equal(calls.at(-1).body.profile.api_key, 'synthetic-web-key');
+  assert.equal(calls.at(-1).body.profile.key_env, null);
+  assert.equal(session.state.draft.api_key, '');
+  session.begin(saved.id); session.update({name: 'Rename only'}); await session.save();
+  assert.equal(Object.hasOwn(calls.at(-1).body.profile, 'api_key'), false);
+  assert.equal(calls.some(call => call.path.endsWith('/test')), false);
+});
+
+test('failed save and closing clear the secret while retaining other draft fields', async () => {
+  const session = new ModelProfilesSession({api: async path => {
+    if (path.endsWith('/save')) throw Object.assign(new Error('private raw detail'), {status: 400, code: 'model_credentials_invalid'});
+    return catalog([]);
+  }});
+  await session.load(); session.update({name: 'Keep this name', api_key: 'synthetic-web-key'});
+  await session.save(); assert.equal(session.state.draft.api_key, '');
+  assert.match(session.state.error, /API Key 格式/); assert.doesNotMatch(session.state.error, /private/);
+  session.update({api_key: 'synthetic-again'}); session.clearSecret();
+  assert.equal(session.state.draft.api_key, ''); assert.equal(session.state.draft.name, 'Keep this name');
+});
+
+test('deleting only the stored key uses a separate revision-bound endpoint and preserves the profile', async () => {
+  const saved = {...profile, key_env: null, has_api_key: true}, calls = [], pending = deferred();
+  const session = new ModelProfilesSession({api: async (path, method, body) => {
+    calls.push({path, body}); return path.endsWith('/delete-key') ? pending.promise : catalog([saved], saved);
+  }});
+  await session.load(); session.begin(saved.id);
+  const deleting = session.removeKey(saved.id); await session.removeKey(saved.id);
+  assert.equal(calls.filter(call => call.path.endsWith('/delete-key')).length, 1);
+  assert.deepEqual(calls.at(-1).body, {id: saved.id, expected_revision: 1});
+  const missing = {...saved, has_api_key: false, revision: 2, identity: '2'.repeat(64)};
+  pending.resolve(catalog([missing], missing, 2)); await deleting;
+  assert.equal(session.state.draft.id, saved.id); assert.equal(session.state.draft.base_url, saved.base_url);
+  assert.equal(session.state.catalog.items[0].has_api_key, false);
+  assert.match(session.state.notice, /密钥已删除/); assert.match(session.state.notice, /配置保留/);
+  assert.equal(calls.some(call => call.path.endsWith('/test') || call.path.endsWith('/delete')), false);
+});
+
+test('unsupported hosts default to the existing environment workflow', async () => {
+  const session = new ModelProfilesSession({api: async () => ({...catalog([]), can_store_api_key: false})});
+  await session.load(); session.begin();
+  assert.equal(session.state.draft.key_env, '');
+  session.update({key_env: 'ASTRA_MODEL_TEST_API_KEY', api_key: 'do-not-send'});
+  assert.equal(session.state.draft.api_key, '');
+});
+
 test('new drafts do not prefill endpoints, model names or credential names and listing does not test', async () => {
   const calls = [], session = new ModelProfilesSession({api: async (...args) => {calls.push(args); return catalog();}});
   await session.load(); session.begin();
-  assert.equal(session.state.draft.base_url, ''); assert.equal(session.state.draft.model, ''); assert.equal(session.state.draft.key_env, '');
+  assert.equal(session.state.draft.base_url, ''); assert.equal(session.state.draft.model, ''); assert.equal(session.state.draft.key_env, null);
+  assert.equal(session.state.draft.api_key, '');
   assert.deepEqual(calls.map(call => call[0]), ['/api/model-profiles']);
   assert.equal(session.state.catalog.selected_identity, 'startup');
 });
@@ -142,14 +198,14 @@ test('actual view clears test consent when editing another profile or reloading 
     get textContent() {return this._text + this.children.map(item => item.textContent).join('');}
     append(...items) {this.children.push(...items);}
     replaceChildren(...items) {this._text = ''; this.children = [...items];}
-    focus() {} close() {this.open = false;} showModal() {this.open = true;}
+    focus() {} close() {this.open = false;} showModal() {this.open = true;} scrollIntoView() {}
   }
   const html = await readFile(new URL('../../astra_harness/static/index.html', import.meta.url), 'utf8');
   const elements = new Map([...html.matchAll(/id="([^"]+)"/g)].map(([, id]) => [id, new Element()]));
   const oldDocument = globalThis.document, oldWindow = globalThis.window;
   globalThis.document = {getElementById: id => {assert.ok(elements.has(id)); return elements.get(id);}, createElement: tag => new Element(tag)};
   globalThis.window = new EventTarget();
-  const other = {...profile, id: 'b'.repeat(32), identity: '2'.repeat(64), name: 'Other', model: 'other', base_url: 'http://127.0.0.1:7002/v1'};
+  const other = {...profile, id: 'b'.repeat(32), identity: '2'.repeat(64), name: 'Other', model: 'other', base_url: 'http://127.0.0.1:7002/v1', key_env: null, has_api_key: true};
   let current = catalog([profile, other]), calls = [];
   const el = id => elements.get(id), fire = (element, type = 'click') => element.dispatchEvent(new Event(type));
   const findButton = (element, label) => element.tagName === 'button' && element.textContent === label ? element
@@ -163,10 +219,17 @@ test('actual view clears test consent when editing another profile or reloading 
     view.refresh(); assert.equal(el('profile-test-confirmed').checked, true);
     fire(findButton(el('profiles-list').children[2], '编辑'));
     assert.equal(el('profile-test-confirmed').checked, false); assert.equal(el('profile-test').disabled, true);
+    assert.equal(el('profile-key-stored').hidden, false); assert.equal(el('profile-key_env').disabled, true);
+    assert.equal(el('profile-api_key').required, false); assert.equal(el('profile-api_key').value, '');
+    fire(el('profile-delete-key'));
+    assert.equal(el('profile-delete-key-confirmation').hidden, false);
     el('profile-test-confirmed').checked = true; fire(el('profile-test-confirmed'), 'change');
     current = catalog([profile, {...other, identity: '3'.repeat(64), revision: 2}], null, 2);
     await view.load();
     assert.equal(el('profile-test-confirmed').checked, false); assert.equal(el('profile-test').disabled, true);
+    assert.equal(el('profile-delete-key-confirmation').hidden, true, 'reload invalidates deletion consent too');
+    el('profile-api_key').value = 'synthetic-unsaved'; fire(el('profile-api_key'), 'input'); view.close();
+    assert.equal(el('profile-api_key').value, '', 'closing actually clears the password input');
     assert.equal(calls.some(path => path.endsWith('/test')), false);
   } finally {
     if (oldDocument === undefined) delete globalThis.document; else globalThis.document = oldDocument;

@@ -17,7 +17,7 @@ from urllib.request import url2pathname
 import zipfile
 
 
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 GENERATED_SDIST = {"PKG-INFO", "setup.cfg", *(
     "astra_harness.egg-info/" + name for name in (
         "PKG-INFO", "SOURCES.txt", "dependency_links.txt", "entry_points.txt", "top_level.txt", "requires.txt"))}

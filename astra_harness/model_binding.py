@@ -10,6 +10,7 @@ class ModelProfileError(RuntimeError):
         "model_profile_changed": 409, "model_credentials_changed": 409,
         "model_credentials_missing": 409, "model_session_mismatch": 409,
         "model_profile_not_selected": 409,
+        "model_credentials_invalid": 400, "model_key_storage_unavailable": 409,
     }
 
     def __init__(self, code):

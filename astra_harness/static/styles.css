@@ -222,6 +222,26 @@ a {
   margin-top:2px;
 }
 
+.exit-service {
+  display:flex;
+  align-items:center;
+  gap:9px;
+  width:100%;
+  padding:10px 9px;
+  margin:0 0 14px;
+  border-radius:8px;
+  color:#73637f;
+  font-size:12px;
+  text-align:left;
+}
+.exit-service:hover { background:#ede6ed; color:#923f4d; }
+.exit-service>span:first-child { font-size:18px; line-height:1; }
+.exit-service-hint { margin-left:auto; font-size:10px; color:#73637f; }
+.shutdown-dialog { max-width:480px; }
+.shutdown-symbol { display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; border-radius:14px; background:#f8edf0; color:#923f4d; font-size:25px; margin-bottom:12px; }
+.shutdown-dialog .shutdown-confirm { background:#963f50; }
+.shutdown-dialog .dialog-actions { flex-wrap:wrap; }
+
 .sidebar-footer .icon-button {
   margin-left:auto;
 }
@@ -2024,7 +2044,7 @@ pale accents are reserved for backgrounds. */
 .model-profiles-dialog { width:min(920px,calc(100vw - 32px)); max-height:90vh; overflow:auto; padding:25px; color:#493e55; }
 .model-profiles-dialog p { color:#756b80; line-height:1.65; }
 .model-profiles-dialog h3 { font-size:14px; margin:0 0 10px; color:#534461; }
-.model-profiles-dialog input { color:#493e55; background:#fff; }
+.model-profiles-dialog input, .model-profiles-dialog select { color:#493e55; background:#fff; }
 .mcp-profiles-dialog select,.mcp-profiles-dialog textarea { box-sizing:border-box; width:100%; min-width:0; padding:10px; border:1px solid #ded6e8; border-radius:8px; color:#493e55; background:#fff; font:inherit; font-size:12px; }
 .mcp-profiles-dialog textarea { font-family:ui-monospace,Consolas,monospace; resize:vertical; }
 .mcp-profiles-dialog select:focus-visible,.mcp-profiles-dialog textarea:focus-visible { outline:2px solid #8270d8; outline-offset:2px; }
@@ -2049,6 +2069,14 @@ pale accents are reserved for backgrounds. */
 .model-profiles-sidebar { min-width:0; border-right:1px solid #ece6f2; padding-right:20px; }
 .model-profiles-editor { min-width:0; }
 .model-profile-actions { display:flex; gap:9px; flex-wrap:wrap; align-items:center; margin:14px 0; }
+.knowledge-manage { margin-bottom:20px; }
+.knowledge-create-form { display:flex; align-items:flex-end; gap:12px; }
+.knowledge-create-form > div { flex:1; min-width:0; }
+.knowledge-create-form input { width:100%; }
+.knowledge-upload-form { border-bottom:1px solid #e9e2f0; padding-bottom:18px; margin-bottom:18px; }
+.knowledge-upload-form input { width:100%; min-width:0; font-size:12px; }
+.knowledge-upload-form input::file-selector-button { padding:8px 12px; margin-right:10px; border:1px solid #ded5e8; background:#f9f6fc; color:#594968; border-radius:7px; cursor:pointer; }
+@media(max-width:650px) { .knowledge-create-form { align-items:stretch; flex-direction:column; } }
 .model-profile-card { padding:13px; border:1px solid #eee8f3; border-radius:10px; margin:12px 0; overflow-wrap:anywhere; }
 .model-profile-card.selected { border-color:#c8b4e6; background:#f8f4fe; }
 .model-profile-card strong { display:block; font-size:12px; color:#594968; }

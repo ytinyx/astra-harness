@@ -1,7 +1,7 @@
-"""Small host-owned model catalog. Persistence never contains provider keys.
+"""Host-owned model catalog with separate, protected credential records.
 
-Editing is pure configuration work. Only bind/test reads the named environment
-value; the runtime caches a binding so a running task retains that credential.
+Editing sends no provider requests. Only bind/test resolves credentials; the
+runtime caches a binding so a running task retains its original credential.
 """
 
 import hashlib
@@ -18,9 +18,11 @@ from .builtin.model_profile_adapter import build_profile_model, validate_profile
 from .builtin import model_profile_adapter
 from .builtin.models import ModelAdapterError
 from .model_binding import ModelBinding, ModelProfileError
+from . import model_credentials
 
 CATALOG_KEY = "model_profiles.catalog_v1"
 SEAL_KEY = "model_profiles.seal_v1"
+CREDENTIAL_PREFIX = "model_profiles.credential."
 MAX_PROFILES = 16
 MAX_REVISION = 9007199254740991
 ADAPTER_REVISION = "1"
@@ -117,13 +119,22 @@ class ModelProfiles:
             # A malformed catalog must not silently reset selection or recovery.
             raise ModelProfileError("model_profile_unavailable") from None
 
-    @staticmethod
-    def _view(value):
+    def _view(self, value):
         items = [{**item, "identity": profile_identity(item)} for item in value["items"]]
+        for item in items:
+            if item["key_env"] is None:
+                item["has_api_key"] = self._stored_key(item["id"]) is not None
         selected = next((item for item in items if item["id"] == value["selected_id"]), None)
         return {"revision": value["revision"], "selected_id": value["selected_id"],
                 "selected_identity": selected["identity"] if selected is not None else "startup",
-                "items": items, "protocol": "chat_completions", "startup_label": "启动配置"}
+                "items": items, "protocol": "chat_completions", "startup_label": "启动配置",
+                "can_store_api_key": model_credentials.available()}
+
+    def _stored_key(self, identifier):
+        try:
+            return self._store.host_setting(CREDENTIAL_PREFIX + identifier)
+        except (ValueError, UnicodeError, sqlite3.Error):
+            raise ModelProfileError("model_key_storage_unavailable") from None
 
     def list(self):
         with self._lock:
@@ -141,43 +152,64 @@ class ModelProfiles:
             raise ModelProfileError("model_profile_conflict")
         return raw, value
 
-    def _write(self, raw, value):
+    def _write(self, raw, value, *, credentials=None):
         value["revision"] += 1
         try:
-            if not self._store.compare_and_swap_host_setting(CATALOG_KEY, raw, _json(value)):
+            options = {"updates": credentials} if credentials else {}
+            if not self._store.compare_and_swap_host_setting(CATALOG_KEY, raw, _json(value), **options):
                 raise ModelProfileError("model_profile_conflict")
         except (ValueError, UnicodeError, sqlite3.Error):
             raise ModelProfileError("model_profile_unavailable") from None
         return self._view(value)
 
     def save(self, profile, expected_revision):
-        if type(profile) is not dict or set(profile) - (_ADAPTER_FIELDS | {"id", "name"}):
+        if type(profile) is not dict or set(profile) - (_ADAPTER_FIELDS | {"id", "name", "api_key"}):
             raise ModelProfileError("invalid_model_profile")
         try:
             config = validate_profile_config({key: value for key, value in profile.items() if key in _ADAPTER_FIELDS})
             name = _name(profile.get("name"))
         except (ValueError, TypeError, UnicodeError):
             raise ModelProfileError("invalid_model_profile") from None
+        # None explicitly selects local storage. Existing environment profiles
+        # keep their original snapshot/identity and never accept a secret field.
+        if "api_key" in profile and config["key_env"] is not None:
+            raise ModelProfileError("invalid_model_profile")
+        api_key = profile.get("api_key", "")
+        if api_key != "":
+            model_credentials.validate_key(api_key)
         with self._lock:
             raw, value = self._checked(expected_revision)
+            old = None
             if "id" in profile:
                 identifier = _id(profile["id"])
                 old = next((item for item in value["items"] if item["id"] == identifier), None)
                 if old is None:
                     raise ModelProfileError("model_profile_not_found")
-                item = {"id": identifier, "name": name, **config, "revision": old["revision"],
-                        "adapter_revision": ADAPTER_REVISION}
-                if item != old:
+            else:
+                if len(value["items"]) >= MAX_PROFILES:
+                    raise ModelProfileError("model_profile_conflict")
+                identifier = uuid.uuid4().hex
+            credentials = {}
+            if config["key_env"] is None:
+                if api_key:
+                    credentials[CREDENTIAL_PREFIX + identifier] = model_credentials.protect_key(api_key, identifier)
+                elif old is None or old["key_env"] is not None:
+                    raise ModelProfileError("model_credentials_missing")
+            elif old is not None and old["key_env"] is None:
+                if self._test_lock.locked():
+                    raise ModelProfileError("model_profile_in_use")
+                credentials[CREDENTIAL_PREFIX + identifier] = None
+            item = {"id": identifier, "name": name, **config, "revision": old["revision"] if old else 1,
+                    "adapter_revision": ADAPTER_REVISION}
+            if old is not None:
+                if item != old or api_key:
                     if old["revision"] == MAX_REVISION:
                         raise ModelProfileError("model_profile_conflict")
                     item["revision"] += 1
                 value["items"] = [item if entry["id"] == identifier else entry for entry in value["items"]]
             else:
-                if len(value["items"]) >= MAX_PROFILES:
-                    raise ModelProfileError("model_profile_conflict")
-                value["items"].append({"id": uuid.uuid4().hex, "name": name, **config,
-                                       "revision": 1, "adapter_revision": ADAPTER_REVISION})
-            return self._write(raw, value)
+                value["items"].append(item)
+            return self._write(raw, value, credentials=credentials)
 
     def select(self, identifier, expected_revision):
         if identifier is not None:
@@ -191,14 +223,41 @@ class ModelProfiles:
 
     def delete(self, identifier, expected_revision):
         _id(identifier)
+        if not self._test_lock.acquire(blocking=False):
+            raise ModelProfileError("model_profile_in_use")
+        try:
+            return self._delete(identifier, expected_revision)
+        finally:
+            self._test_lock.release()
+
+    def _delete(self, identifier, expected_revision, *, key_only=False):
         with self._lock:
             raw, value = self._checked(expected_revision)
-            if not any(item["id"] == identifier for item in value["items"]):
+            item = next((item for item in value["items"] if item["id"] == identifier), None)
+            if item is None:
                 raise ModelProfileError("model_profile_not_found")
-            value["items"] = [item for item in value["items"] if item["id"] != identifier]
-            if value["selected_id"] == identifier:
-                value["selected_id"] = None
-            return self._write(raw, value)
+            if key_only:
+                if item["key_env"] is not None:
+                    raise ModelProfileError("invalid_model_profile")
+                if self._stored_key(identifier) is None:
+                    return self._view(value)
+                if item["revision"] == MAX_REVISION:
+                    raise ModelProfileError("model_profile_conflict")
+                item["revision"] += 1
+            else:
+                value["items"] = [item for item in value["items"] if item["id"] != identifier]
+                if value["selected_id"] == identifier:
+                    value["selected_id"] = None
+            return self._write(raw, value, credentials={CREDENTIAL_PREFIX + identifier: None})
+
+    def delete_key(self, identifier, expected_revision):
+        _id(identifier)
+        if not self._test_lock.acquire(blocking=False):
+            raise ModelProfileError("model_profile_in_use")
+        try:
+            return self._delete(identifier, expected_revision, key_only=True)
+        finally:
+            self._test_lock.release()
 
     def _seal_secret(self):
         try:
@@ -219,15 +278,18 @@ class ModelProfiles:
         snapshot = _snapshot(snapshot)
         identity = profile_identity(snapshot)
         try:
-            key = self._environment().get(snapshot["key_env"])
+            key = (model_credentials.unprotect_key(self._stored_key(snapshot["id"]), snapshot["id"])
+                   if snapshot["key_env"] is None else self._environment().get(snapshot["key_env"]))
             model = build_profile_model(key, {field: snapshot[field] for field in _ADAPTER_FIELDS})
+        except ModelProfileError:
+            raise
         except ModelAdapterError as exc:
             code = "model_credentials_missing" if str(exc) == "model_credentials_missing" else "model_profile_unavailable"
             raise ModelProfileError(code) from None
         except Exception:
             raise ModelProfileError("model_profile_unavailable") from None
         # A DB-local random secret prevents a public run identity from becoming
-        # an offline oracle for a low-entropy credential. The key is not stored.
+        # an offline oracle for a low-entropy credential. No plaintext is stored.
         payload = _json(["astra.model-profile.credential.v1", identity, key]).encode("utf-8")
         seal = hmac.new(self._seal_secret(), payload, hashlib.sha256).hexdigest()
         return ModelBinding(snapshot=snapshot, identity=identity, credential_seal=seal, model=model)

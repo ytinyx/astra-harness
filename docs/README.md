@@ -2,7 +2,7 @@
 
 [项目首页](../README.md) · [验证状态](../HANDOFF.md) · [版本与升级](VERSION_TIMELINE.md)
 
-先完成一个任务，再按需要理解内核或接入能力。所有指南对应 **0.4.0**；下载固定版本见 [GitHub Release](https://github.com/ytinyx/astra-harness/releases/tag/v0.4.0)。
+先完成一个任务，再按需要理解内核或接入能力。所有指南对应 **0.5.0**；下载固定版本见 [GitHub Release](https://github.com/ytinyx/astra-harness/releases/tag/v0.5.0)。
 
 ## 首次使用
 
@@ -10,6 +10,7 @@
 | --- | --- |
 | [新手入门](GETTING_STARTED.md) | 如何安装、打开工作台并检查第一份产物 |
 | [完整演示](DEMO.md) | 如何演示工具调用、审批、暂停与恢复 |
+| [运行快照](SNAPSHOTS.md) | 0.5.0 桌面／窄屏界面，以及每张截图实际展示的状态 |
 | [工作区](WORKSPACES.md) | 如何选择自己的目录，旧任务为什么不跟着切换 |
 | [基本工具](CORE_TOOLS.md) | 文件读取、搜索、精确编辑与命令的用法和限制 |
 

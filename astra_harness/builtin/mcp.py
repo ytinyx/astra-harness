@@ -142,7 +142,7 @@ class StdioMCPClient:
             connection.writer.start()
             result = self._request(connection, _Operation("initialize", self.timeout), {
                 "protocolVersion": "2025-06-18", "capabilities": {},
-                "clientInfo": {"name": "astra-harness", "version": "0.4.0"},
+                "clientInfo": {"name": "astra-harness", "version": "0.5.0"},
             })
             if (result.get("protocolVersion") != "2025-06-18" or not isinstance(result.get("capabilities"), dict)
                     or not isinstance(result["capabilities"].get("tools"), dict)):

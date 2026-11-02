@@ -57,7 +57,7 @@ Test-Path -LiteralPath $todoPath
 
 ![离线会议任务提出文件写入，正在等待用户审批](images/task-approval-current.jpg)
 
-上图展示待审批的调用内容，此时尚未写入文件。批准后，可在执行过程里查看同一次调用的参数与结果。下面是本地合成任务实际写入 `todos.json` 的记录；只截取工具卡片，未展示本机目录。
+上图展示待审批的调用内容，此时尚未写入文件。批准后，可在执行过程里查看同一次调用的参数与结果。下面是本地合成任务实际写入 `todos.json` 的记录；截取任务结果与工具卡片区域，未展示本机目录。
 
 ![实际工具记录：files.write 返回 todos.json 与写入字节数](images/tool-result-current.jpg)
 

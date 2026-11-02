@@ -77,7 +77,7 @@ CLI 的 `pause RUN_ID`、`resume RUN_ID` 直接打开指定数据库，不能与
 
 ## 用检查区分配置、运行与效果
 
-`doctor` 只检查静态配置和基本路径条件，不发模型请求、不验证认证、数据库锁或 MCP 连通性。配置放在 [astra.example.json](../astra.example.json) 的同类 JSON 中；`.env` 仅在显式指定 `--env-file` 时读取。模型档案另用后端环境变量引用密钥，完整操作见 [模型配置](MODEL_PROFILES.md)。
+`doctor` 只检查静态配置和基本路径条件，不发模型请求、不验证认证、数据库锁或 MCP 连通性。配置放在 [astra.example.json](../astra.example.json) 的同类 JSON 中；`.env` 仅在显式指定 `--env-file` 时读取。模型档案可引用后端环境变量，当前源码还可在 Windows 网页填写并由后端加密保存 API Key，完整操作见 [模型配置](MODEL_PROFILES.md)。
 
 在独立运行目录中，将配置的 `max_tool_calls` 设为 `0`，提交加法任务并观察 `tool_limit` 与零工具执行；将 `context_chars` 调小，观察模型请求前的 `context_limit`。这类练习核对运行限制，不证明真实模型的质量。
 

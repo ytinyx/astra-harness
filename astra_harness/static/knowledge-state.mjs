@@ -4,6 +4,66 @@ export const operationTerminal = new Set(['completed', 'failed', 'cancelled', 'u
 export const actionLabels = {import_file: '导入 / 更新', remove: '移除索引', search: '词法检索',
   embedding_test: '测试 embedding 连接', embedding_rebuild: '重建语义索引', semantic_search: '语义检索'};
 export const embeddingActions = new Set(['embedding_test', 'embedding_rebuild', 'semantic_search']);
+
+export async function encodeKnowledgeFile(file) {
+  if (!file || !/\.(md|txt)$/i.test(file.name) || file.size < 1 || file.size > 128000) {
+    throw new Error('请选择 1 至 128,000 字节的 UTF-8 .md / .txt 文件。');
+  }
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (bytes.length !== file.size) throw new Error('文件已变化，请重新选择。');
+  let text;
+  try { text = new TextDecoder('utf-8', {fatal: true}).decode(bytes); }
+  catch { throw new Error('文件不是有效的 UTF-8 文本，请转换编码后重试。'); }
+  if (text.includes('\0')) throw new Error('文件包含二进制内容，请选择纯文本材料。');
+  let binary = ''; for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+export class KnowledgeCreation {
+  constructor({request, read = () => null, write = () => {}, changed = () => {}, makeId = () => 'kb_' + crypto.randomUUID().replaceAll('-', '').slice(0, 24)}) {
+    Object.assign(this, {request, read, write, changed, makeId}); this.generation = 0;
+    this.state = {info: null, pending: null, busy: false, error: ''};
+  }
+  select(info) {
+    this.generation++;
+    let pending = null;
+    try {
+      const stored = JSON.parse(this.read(info.workspace_id) || 'null');
+      if (stored?.workspace_id === info.workspace_id && /^kb_[a-f0-9]{24}$/.test(stored.id)
+          && typeof stored.label === 'string' && stored.label.length <= 64 && /^[a-f0-9]{64}$/.test(stored.expected_revision)) pending = stored;
+    } catch {}
+    if (pending && info.collections?.some(item => item.id === pending.id && item.label === pending.label)) {
+      this.write(info.workspace_id, ''); pending = null;
+    }
+    this.state = {info, pending, busy: false, error: pending ? '上次创建结果尚未确认。点击“重新确认创建”复用原请求。' : ''};
+    this.changed();
+  }
+  async start(label) {
+    const {info, busy} = this.state;
+    if (busy || !info?.management?.can_create || !info.workspace_id || !label.trim()) return null;
+    const generation = this.generation;
+    const body = this.state.pending || {id: this.makeId(), label: label.trim(), workspace_id: info.workspace_id, expected_revision: info.management.revision};
+    this.state.pending = body; this.write(info.workspace_id, JSON.stringify(body));
+    this.state.busy = true; this.state.error = ''; this.changed();
+    try {
+      const result = await this.request('/api/knowledge/collections', 'POST', body);
+      if (result.ok !== true || result.id !== body.id) throw new Error('创建结果无法确认，请刷新知识库列表。');
+      this.write(info.workspace_id, '');
+      if (generation === this.generation) this.state.pending = null;
+      return body.id;
+    } catch (error) {
+      const definite = [400, 403, 404, 409].includes(error.status);
+      if (definite) this.write(info.workspace_id, '');
+      if (generation === this.generation) {
+        if (definite) this.state.pending = null;
+        this.state.error = definite ? error.message : '创建结果尚未确认。请重新确认创建，或刷新列表核对；不会自动创建第二份。';
+      }
+      return null;
+    } finally {
+      if (generation === this.generation) { this.state.busy = false; this.changed(); }
+    }
+  }
+}
 const identifier = /^[A-Za-z0-9_-]{1,128}$/;
 
 export function actionRecoveryIdentity(collection, action) {

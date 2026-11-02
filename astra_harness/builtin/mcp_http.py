@@ -146,7 +146,7 @@ class StreamableHTTPMCPClient:
                 limits=httpx.Limits(max_connections=2, max_keepalive_connections=1)), timeout=self.timeout)
         try:
             result = await self._request("initialize", {"protocolVersion": PROTOCOL_VERSION,
-                "capabilities": {}, "clientInfo": {"name": "astra-harness", "version": "0.4.0"}}, initialize=True)
+                "capabilities": {}, "clientInfo": {"name": "astra-harness", "version": "0.5.0"}}, initialize=True)
             if (result.get("protocolVersion") != PROTOCOL_VERSION or not isinstance(result.get("capabilities"), dict)
                     or not isinstance(result["capabilities"].get("tools"), dict)):
                 raise MCPError("mcp_unsupported_capabilities")
